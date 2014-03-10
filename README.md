@@ -31,10 +31,10 @@ into beets, *beets-check* will do this for you. The plugin hooks into the
 importer and after a tracks has been added to the database and all tracks have
 been written it will add a checksum for that file.
 
-The same goes for updating tags. The [`write`][] and [`modify`][] commands
-updates the tags of audio files and this invalidates their checksum. Therefore,
-*beets-check* will automatically update your checksum after the write has
-finished. 
+The same goes for updating tags. The [`write`][write] and [`modify`][modify]
+commands updates the tags of audio files and this invalidates their checksum.
+Therefore, *beets-check* will automatically update your checksum after the
+write has finished.
 
 ```
 $ beet check -e 'title:A Day in the Life'
@@ -129,11 +129,13 @@ Format-Specific Integretiy Checks
 Currently, this is not implemented, but it would be nice to check if audio
 files for their integrity. Candidates for third party tools are
 
-* [flac --test][]
+* [flac --test][flac]
 * [mp3val][]
 * [oggz-validate][]
 
-[mp3check]: http://code.google.com/p/mp3check/
+[flac]: https://xiph.org/flac/documentation_tools_flac.html
+[mp3val]: http://mp3val.sourceforge.net/
+[oggz-validate]: https://www.xiph.org/oggz/
 
 License
 -------
