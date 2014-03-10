@@ -1,0 +1,6 @@
+dist/
+beets_check.egg-info/
+build/
+.coverage
+coverage/
+*.pyc
