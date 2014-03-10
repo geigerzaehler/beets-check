@@ -56,6 +56,8 @@ class CheckPlugin(BeetsPlugin):
             self.register_listener('album_imported', self.album_imported)
         if self.config['write-check']:
             self.register_listener('write', self.item_before_write)
+        if self.config['write-update']:
+            self.register_listener('after_write', self.item_after_write)
 
     def commands(self):
         return [CheckCommand()]
@@ -72,6 +74,9 @@ class CheckPlugin(BeetsPlugin):
     def item_before_write(self, item):
         if item.get('checksum', None):
             verify(item)
+
+    def item_after_write(self, item):
+        set_checksum(item)
 
     def copy_original_checksum(self, config, task):
         for item in task.imported_items():
