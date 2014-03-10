@@ -18,7 +18,7 @@ setup(name='beets-check',
       namespace_packages=['beetsplug'],
 
       install_requires=[
-          'beets>=1.3.0',
+          'beets>=1.3.4',
       ],
 
       classifiers=[

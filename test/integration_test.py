@@ -70,7 +70,6 @@ class WriteTest(TestHelper, TestCase):
         mediafile = MediaFile(item.path)
         self.assertNotEqual(mediafile.title, 'newtitle')
 
-    @skip('not yet available in beets')
     def test_update_checksum(self):
         item = self.lib.items().get()
         orig_checksum = item['checksum']

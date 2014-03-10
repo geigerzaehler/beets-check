@@ -1,7 +1,9 @@
 language: python
 
 install:
-    - pip install . coveralls
+  - "pip install git+git://github.com/sampsyo/beets.git@master"
+  - "pip install coveralls"
+  - "pip install ."
 
 script: nosetests
 
