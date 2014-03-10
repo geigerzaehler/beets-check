@@ -7,6 +7,11 @@ from contextlib import contextmanager
 from StringIO import StringIO
 
 import beets
+from beets import autotag
+from beets.autotag import AlbumInfo, TrackInfo, \
+                          AlbumMatch, TrackMatch, \
+                          recommendation
+from beets.autotag.hooks import Distance
 from beets.library import Item
 from beets.mediafile import MediaFile
 
@@ -70,8 +75,9 @@ class TestHelper(object):
         self.config['plugins'] = ['check']
         self.config['verbose'] = True
         self.config['color'] = False
+        self.config['threaded'] = False
 
-        self.libdir= os.path.join(self.temp_dir, 'libdir')
+        self.libdir = os.path.join(self.temp_dir, 'libdir')
         os.mkdir(self.libdir)
         self.config['directory'] = self.libdir
 
@@ -98,3 +104,57 @@ class TestHelper(object):
         mediafile = MediaFile(path)
         mediafile.title = title
         mediafile.save()
+
+    @contextmanager
+    def mockAutotag(self):
+        mock = AutotagMock()
+        mock.install()
+        try:
+            yield
+        finally:
+            mock.restore()
+
+
+class AutotagMock(object):
+
+    def __init__(self):
+        self.id = 0
+
+    def nextid(self):
+        self.id += 1
+        return self.id
+
+    def install(self):
+        self._orig_tag_album = autotag.tag_album
+        self._orig_tag_item = autotag.tag_item
+        autotag.tag_album = self.tag_album
+        autotag.tag_item = self.tag_item
+
+    def restore(self):
+        autotag.tag_album = self._orig_tag_album
+        autotag.tag_item = self._orig_tag_item
+
+    def tag_album(self, items, **kwargs):
+        artist = (items[0].artist or '') + ' tag'
+        album  = (items[0].album or '') + ' tag'
+        mapping = {}
+        dist = Distance()
+        dist.tracks = {}
+        for item in items:
+            title = (item.title or '') + ' tag'
+            track_info = TrackInfo(title=title, track_id=self.nextid())
+            mapping[item] = track_info
+            dist.tracks[track_info] = Distance()
+
+        album_info = AlbumInfo(album='album', album_id=self.nextid(),
+                               artist='artist', artist_id=self.nextid(),
+                               tracks=mapping.values())
+        match = AlbumMatch(distance=dist, info=album_info, mapping=mapping,
+                           extra_items=[], extra_tracks=[])
+        return artist, album, [match], recommendation.strong
+
+    def tag_item(self, item, **kwargs):
+        title = (item.title or '') + ' tag'
+        track_info = TrackInfo(title=title, track_id=self.nextid())
+        match = TrackMatch(distance=Distance(), info=track_info)
+        return [match], recommendation.strong

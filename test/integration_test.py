@@ -17,14 +17,16 @@ class ImportTest(TestHelper, TestCase):
         self.setupImportDir()
 
     def test_add_album_checksum(self):
-        beets.ui._raw_main(['import', '--noautotag', self.import_dir])
+        with self.mockAutotag():
+            beets.ui._raw_main(['import', self.import_dir])
         item = self.lib.items().get()
         self.assertIn('checksum', item)
+        self.assertEqual(item.title, 'full tag')
         check.verify(item)
 
     def test_add_singleton_checksum(self):
-        beets.ui._raw_main(['import', '--singletons',
-                            '--noautotag', self.import_dir])
+        with self.mockAutotag():
+            beets.ui._raw_main(['import', '--singletons', self.import_dir])
         item = self.lib.items().get()
         self.assertIn('checksum', item)
         check.verify(item)
@@ -37,7 +39,8 @@ class ImportTest(TestHelper, TestCase):
         check.verify(item)
         self.modifyFile(item.path)
 
-        beets.ui._raw_main(['import', '--noautotag', self.libdir])
+        with self.mockAutotag():
+            beets.ui._raw_main(['import', self.libdir])
         item = self.lib.items().get()
         self.assertEqual(item['checksum'], orig_checksum)
 
