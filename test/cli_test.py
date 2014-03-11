@@ -12,6 +12,7 @@ from beetsplug import check
 class CheckTest(TestHelper, TestCase):
 
     def setUp(self):
+        super(CheckTest, self).setUp()
         self.setupBeets()
         self.setupFixtureLibrary()
 
@@ -103,5 +104,5 @@ class CheckTest(TestHelper, TestCase):
             beets.ui._raw_main(['check', '--export'])
 
         item = self.lib.items().get()
-        self.assertEqual('{} *{}\n'.format(item.checksum, item.path),
-                         stdout.getvalue())
+        self.assertIn('{} *{}\n'.format(item.checksum, item.path),
+                      stdout.getvalue())

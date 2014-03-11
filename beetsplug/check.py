@@ -11,13 +11,17 @@
 # all copies or substantial portions of the Software.
 
 
+import traceback
 import sys
+import os.path
 import logging
+from subprocess import Popen, PIPE
 from hashlib import sha256
 from optparse import OptionParser
 
-from beets.plugins import BeetsPlugin
+from beets.plugins import BeetsPlugin, BeforeWriteError
 from beets.ui import Subcommand, decargs, colorize, input_yn
+from beets import importer
 
 
 log = logging.getLogger('beets.check')
@@ -35,10 +39,11 @@ def compute_checksum(item):
 def verify(item):
     if item['checksum'] != compute_checksum(item):
         raise ChecksumError('checksum did not match value in library.')
+    for checker in IntegrityChecker.allAvailable():
+        checker.run(item)
 
 
-class ChecksumError(Exception):
-    pass
+class ChecksumError(BeforeWriteError): pass
 
 
 class CheckPlugin(BeetsPlugin):
@@ -49,6 +54,7 @@ class CheckPlugin(BeetsPlugin):
             'import': True,
             'write-check': True,
             'write-update': True,
+            'integrity': True,
         })
         if self.config['import']:
             self.register_listener('item_imported', self.item_imported)
@@ -58,6 +64,8 @@ class CheckPlugin(BeetsPlugin):
             self.register_listener('write', self.item_before_write)
         if self.config['write-update']:
             self.register_listener('after_write', self.item_after_write)
+        if self.config['integrity']:
+            self.register_listener('import_task_choice', self.verify_import_integrity)
 
     def commands(self):
         return [CheckCommand()]
@@ -88,6 +96,24 @@ class CheckPlugin(BeetsPlugin):
             if checksum:
                 item['checksum'] = checksum
                 item.store()
+
+    def verify_import_integrity(self, session, task):
+        integrity = True
+        if not task.items:
+            return
+        for item in task.items:
+            for checker in IntegrityChecker.allAvailable():
+                try:
+                    checker.run(item)
+                except IntegrityError as ex:
+                    integrity = False
+                    log.warn(ex)
+
+        if not integrity:
+            if input_yn('Do you want to overwrite all '
+                        'checksums in your database? (Y/n)'):
+                task.choice_flag = importer.action.SKIP
+
 
 
 class CheckCommand(Subcommand):
@@ -195,3 +221,43 @@ class CheckCommand(Subcommand):
             sys.stdout.write('\n')
         else:
             sys.stdout.write(len(msg)*' ' + '\r')
+
+class IntegrityError(Exception): pass
+
+class IntegrityChecker(object):
+
+    program = None
+    arguments = []
+
+    @classmethod
+    def all(cls):
+        if not hasattr(cls, '_all'):
+            cls._all = [c() for c in cls.__subclasses__()]
+        return cls._all
+
+    @classmethod
+    def allAvailable(cls):
+        if not hasattr(cls, '_all_available'):
+            cls._all_available = [c for c in cls.all() if c.available()]
+        return cls._all_available
+
+    def available(self):
+        for path in os.environ.get('PATH').split(os.pathsep):
+            if os.path.isfile(os.path.join(path, self.program)):
+                return True
+        return False
+
+    def run(self, item):
+        process = Popen([self.program] + self.arguments + [item.path],
+                        stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        self.parse(*process.communicate())
+
+    def parse(self, stdout, stderr):
+        raise NotImplementedError
+
+class MP3Val(IntegrityChecker):
+
+    program = 'mp3val'
+
+    def parse(self, stdout, stderr):
+        pass

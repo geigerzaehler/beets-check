@@ -120,27 +120,61 @@ check:
   import: yes
   write-check: yes
   write-update: yes
+  integrity: no
 ```
 
 These option control at which point *beets-check* will be used automatically by
 other beets commands. You can disable each option by setting its value to `no`.
 
 * `import: no` Don’t add checksums for new files during the import process
-* `write-check: no` Don’t verify checksums before writing files with `beet
-   write`.
-* `write-update: no` Don’t update checksums after writing files with `beets
-   write`.
+* `write-check: no` Don’t verify checksums before writing files with
+  `beet write` or `beet modify`.
+* `write-update: no` Don’t update checksums after writing files with
+  `beet write` or `beet modify`.
+* `integrity: no` Don’t use third party tools to check the integrity of
+  a file.
 
 
 Format-Specific Integretiy Checks
 ---------------------------------
 
-Currently, this is not implemented, but it would be nice to check audio
-files for their integrity. Candidates for third party tools are
+Checksums alone cannot find errors in the files content. For example,
+prior to the import an MP3 file may have been truncated by an incomplete
+download. To detect these error the plugin uses third party tools.
 
-* [flac][] with the `--test` flag.
-* [mp3val][]
-* [oggz-validate][]
+Integrity checks are supported for the OGG, MP3, and FLAC formats. They
+use the [`oggz-validate`][oggz-validate], [`mp3val`][mp3val] and
+[`flac`][flac] (with the `--test` flag) commands. These programs have to
+be installed on your system. To show a list of available tools use
+
+```
+$ beet check --list-tools
+oggz-validate   found
+mp3val          found
+flac            missing
+```
+
+Similar to checksum verification, integrity checks are performed before
+writing a file. In addition the integrity of files that are about to be
+imported is checked.
+
+```
+$ beet import 'Abbey Road'
+Tagging:
+    The Beatles - Abbey Road
+URL:
+    http://musicbrainz.org/release/eca8996a-a637-3259-ba07-d2573c601a1b
+(Similarity: 100.0%) (Vinyl, 1969, DE, Apple Records)
+Warning: failed to verify integrity
+  Abbey Road/01 Come Together.mp3: MPEG stream error
+Do you want to skip this album? (Y/n)
+```
+
+To check files that are already in your library run
+```
+$ beet check
+Abbey Road/01 Come Together.mp3: WARNING MPEG stream error
+```
 
 [flac]: https://xiph.org/flac/documentation_tools_flac.html
 [mp3val]: http://mp3val.sourceforge.net/

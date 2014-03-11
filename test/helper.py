@@ -8,6 +8,7 @@ from StringIO import StringIO
 
 import beets
 from beets import autotag
+from beets import plugins
 from beets.autotag import AlbumInfo, TrackInfo, \
                           AlbumMatch, TrackMatch, \
                           recommendation
@@ -60,6 +61,10 @@ def controlStdin(input=None):
 
 class TestHelper(object):
 
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        plugins._classes = [check.CheckPlugin]
+
     def tearDown(self):
         if hasattr(self, 'temp_dir'):
             shutil.rmtree(self.temp_dir)
@@ -72,10 +77,11 @@ class TestHelper(object):
         self.config.clear()
         self.config.read()
 
-        self.config['plugins'] = ['check']
+        self.config['plugins'] = []
         self.config['verbose'] = True
         self.config['color'] = False
         self.config['threaded'] = False
+        self.config['import']['copy'] = False
 
         self.libdir = os.path.join(self.temp_dir, 'libdir')
         os.mkdir(self.libdir)
@@ -86,9 +92,13 @@ class TestHelper(object):
 
         self.fixture_dir = os.path.join(os.path.dirname(__file__), 'fixtures')
         
-    def setupImportDir(self):
+    def setupImportDir(self, files):
         self.import_dir = os.path.join(self.temp_dir, 'import')
-        shutil.copytree(self.fixture_dir, self.import_dir)
+        if not os.path.isdir(self.import_dir):
+            os.mkdir(self.import_dir)
+        for file in files:
+            src = os.path.join(self.fixture_dir, file)
+            shutil.copy(src, self.import_dir)
 
     def setupFixtureLibrary(self):
         self.import_dir = os.path.join(self.temp_dir, 'import')
@@ -96,7 +106,7 @@ class TestHelper(object):
             src = os.path.join(self.fixture_dir, file)
             dst = os.path.join(self.libdir, file)
             shutil.copy(src, dst)
-            item = Item(path=dst)
+            item = Item.from_path(dst)
             item.add(self.lib)
             check.set_checksum(item)
 
