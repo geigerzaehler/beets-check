@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 
 import beets.ui
@@ -106,3 +107,29 @@ class CheckTest(TestHelper, TestCase):
         item = self.lib.items().get()
         self.assertIn('{} *{}\n'.format(item.checksum, item.path),
                       stdout.getvalue())
+
+class ToolListTest(TestHelper, TestCase):
+
+    def setUp(self):
+        super(ToolListTest, self).setUp()
+        self.setupBeets()
+
+    def test_list(self):
+        with captureStdout() as stdout:
+            beets.ui._raw_main(['check', '--list-tools'])
+        self.assertIn('mp3val', stdout.getvalue())
+        self.assertIn('flac', stdout.getvalue())
+        self.assertIn('oggz-validate', stdout.getvalue())
+
+    def test_found_mp3val(self):
+        os.environ['PATH'] = self.temp_dir
+        open(os.path.join(self.temp_dir, 'mp3val'), 'w').close()
+        with captureStdout() as stdout:
+            beets.ui._raw_main(['check', '--list-tools'])
+        self.assertRegexpMatches(stdout.getvalue(), r'mp3val *found')
+
+    def test_oggz_validate_not_found(self):
+        os.environ['PATH'] = self.temp_dir
+        with captureStdout() as stdout:
+            beets.ui._raw_main(['check', '--list-tools'])
+        self.assertRegexpMatches(stdout.getvalue(), r'oggz-validate *not found')

@@ -138,6 +138,10 @@ class CheckCommand(Subcommand):
             action='store_true', dest='export', default=False,
             help='print paths and corresponding checksum')
         parser.add_option(
+            '-l', '--list-tools',
+            action='store_true', dest='list_tools', default=False,
+            help='list available third-party used to check integrity')
+        parser.add_option(
             '-q', '--quiet',
             action='store_true', dest='quiet', default=False,
             help='only show errors')
@@ -158,6 +162,8 @@ class CheckCommand(Subcommand):
             self.update()
         elif options.export:
             self.export()
+        elif options.list_tools:
+            self.list_tools()
         else:
             self.check()
 
@@ -208,6 +214,18 @@ class CheckCommand(Subcommand):
             if item.get('checksum', None):
                 print('{} *{}'.format(item.checksum, item.path))
 
+    def list_tools(self):
+        checkers = [(checker.program, checker.available())
+                     for checker in IntegrityChecker.all()]
+        prog_length = max(map(lambda c: len(c[0]), checkers)) + 3
+        for program, available in checkers:
+            msg = program + (prog_length-len(program))*u' '
+            if available:
+                msg += colorize('green', 'found')
+            else:
+                msg += colorize('red', 'not found')
+            print(msg)
+
     def log(self, msg):
         if not self.quiet:
             print(msg)
@@ -223,7 +241,9 @@ class CheckCommand(Subcommand):
         else:
             sys.stdout.write(len(msg)*' ' + '\r')
 
-class IntegrityError(Exception): pass
+
+class IntegrityError(BeforeWriteError): pass
+
 
 class IntegrityChecker(object):
 
@@ -256,9 +276,25 @@ class IntegrityChecker(object):
     def parse(self, stdout, stderr):
         raise NotImplementedError
 
+
 class MP3Val(IntegrityChecker):
 
     program = 'mp3val'
+
+    def parse(self, stdout, stderr):
+        pass
+
+class FlacTest(IntegrityChecker):
+
+    program = 'flac'
+    arguments = ['--test']
+
+    def parse(self, stdout, stderr):
+        pass
+
+class OggzValidate(IntegrityChecker):
+
+    program = 'oggz-validate'
 
     def parse(self, stdout, stderr):
         pass
