@@ -5,12 +5,21 @@ beets-check
 of your audio files. It computes checksum for files in your library, stores
 them in the database and verifies them.
 
+To use the plugin you need the development version of beets. You can
+install it via
+```
+pip install git+git://github.com/sampsyo/beets.git
+pip install git+git://github.com/geigerzaehler/beets-check.git
+```
+
 
 To get started compute and store checksums for your files.
 ```
 $ beet check -a
 Adding unknown checksums:  1032/8337 [12%]
 ```
+This command adds a checksum for all files in your library that dont’t
+have one yet.
 
 To verify the checksums against their file run
 ```
@@ -126,10 +135,10 @@ other beets commands. You can disable each option by setting its value to `no`.
 Format-Specific Integretiy Checks
 ---------------------------------
 
-Currently, this is not implemented, but it would be nice to check if audio
+Currently, this is not implemented, but it would be nice to check audio
 files for their integrity. Candidates for third party tools are
 
-* [flac --test][flac]
+* [flac][] with the `--test` flag.
 * [mp3val][]
 * [oggz-validate][]
 
