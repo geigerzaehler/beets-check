@@ -4,7 +4,7 @@ notifications:
 language: python
 
 install:
-  - "pip install git+git://github.com/sampsyo/beets.git@master"
+  - "pip install git+git://github.com/geigerzaehler/beets.git@check-plugin"
   - "pip install coveralls"
   - "pip install ."
 

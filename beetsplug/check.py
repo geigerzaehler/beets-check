@@ -98,7 +98,7 @@ class CheckPlugin(BeetsPlugin):
                 item.store()
 
     def verify_import_integrity(self, session, task):
-        integrity = True
+        integrity_errors = []
         if not task.items:
             return
         for item in task.items:
@@ -106,12 +106,13 @@ class CheckPlugin(BeetsPlugin):
                 try:
                     checker.run(item)
                 except IntegrityError as ex:
-                    integrity = False
-                    log.warn(ex)
+                    integrity_errors.append(ex)
 
-        if not integrity:
-            if input_yn('Do you want to overwrite all '
-                        'checksums in your database? (Y/n)'):
+        if integrity_errors:
+            log.warn('Warning: failed to verify integrity')
+            for error in integrity_errors:
+                log.warn('  {}: {}'.format(item.path, error))
+            if input_yn('Do you want to skip this album (Y/n)'):
                 task.choice_flag = importer.action.SKIP
 
 
