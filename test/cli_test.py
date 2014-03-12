@@ -17,6 +17,9 @@ class CheckTest(TestHelper, TestCase):
         self.setupBeets()
         self.setupFixtureLibrary()
 
+    def tearDown(self):
+        super(CheckTest, self).tearDown()
+
     def test_add_checksums(self):
         item = self.lib.items().get()
         del item['checksum']
@@ -108,11 +111,48 @@ class CheckTest(TestHelper, TestCase):
         self.assertIn('{} *{}\n'.format(item.checksum, item.path),
                       stdout.getvalue())
 
+
+class IntegrityCheckTest(TestHelper, TestCase):
+
+    def setUp(self):
+        super(IntegrityCheckTest, self).setUp()
+        self.setupBeets()
+        self.setupFixtureLibrary()
+        self.enableIntegrityCheckers()
+
+    def tearDown(self):
+        super(IntegrityCheckTest, self).tearDown()
+
+    def test_check_mp3_integrity(self):
+        item = self.lib.items('truncated.mp3').get()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check'])
+        self.assertIn('{}: WARNING It seems that file is '
+                      'truncated or there is garbage at the '
+                      'end of the file'.format(item.path), logs)
+
+    def test_check_mp3_integrity(self):
+        item = self.lib.items('truncated.flac').get()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check'])
+        self.assertIn(
+            '{}: WARNING error while decoding data'.format(item.path), logs)
+
+
 class ToolListTest(TestHelper, TestCase):
 
     def setUp(self):
         super(ToolListTest, self).setUp()
+        self.enableIntegrityCheckers()
         self.setupBeets()
+        self.orig_path = os.environ['PATH']
+        os.environ['PATH'] = self.temp_dir
+
+    def tearDown(self):
+        super(ToolListTest, self).tearDown()
+        os.environ['PATH'] = self.orig_path
 
     def test_list(self):
         with captureStdout() as stdout:
@@ -122,7 +162,6 @@ class ToolListTest(TestHelper, TestCase):
         self.assertIn('oggz-validate', stdout.getvalue())
 
     def test_found_mp3val(self):
-        os.environ['PATH'] = self.temp_dir
         open(os.path.join(self.temp_dir, 'mp3val'), 'w').close()
         with captureStdout() as stdout:
             beets.ui._raw_main(['check', '--list-tools'])

@@ -90,6 +90,7 @@ class ImportTest(TestHelper, TestCase):
         with self.mockAutotag(), controlStdin(' '), \
                 captureStdout() as stdout, captureLog() as logs:
             beets.ui._raw_main(['import', self.import_dir])
+        print stdout.getvalue()
 
         self.assertIn('Warning: failed to verify integrity', '\n'.join(logs))
         self.assertIn('truncated.mp3: file is corrupt', '\n'.join(logs))
@@ -114,35 +115,35 @@ class WriteTest(TestHelper, TestCase):
         self.setupFixtureLibrary()
 
     def test_log_error_for_invalid_checksum(self):
-        item = self.lib.items().get()
+        item = self.lib.items('ok').get()
         check.verify(item)
         self.modifyFile(item.path)
 
         with captureLog() as logs:
-            beets.ui._raw_main(['write'])
+            beets.ui._raw_main(['write', item.title])
         self.assertRegexpMatches('\n'.join(logs),
                 r'could not write .*: checksum did not match value in library')
 
     def test_abort_write_when_invalid_checksum(self):
-        item = self.lib.items().get()
+        item = self.lib.items('ok').get()
         check.verify(item)
         self.modifyFile(item.path, title='other title')
 
         item['title'] = 'newtitle'
         item.store()
-        beets.ui._raw_main(['write'])
+        beets.ui._raw_main(['write', item.title])
 
         mediafile = MediaFile(item.path)
         self.assertNotEqual(mediafile.title, 'newtitle')
 
     def test_update_checksum(self):
-        item = self.lib.items().get()
+        item = self.lib.items('ok').get()
         orig_checksum = item['checksum']
         check.verify(item)
 
         item['title'] = 'newtitle'
         item.store()
-        beets.ui._raw_main(['write'])
+        beets.ui._raw_main(['write', item.title])
 
         item.load()
         self.assertNotEqual(item['checksum'], orig_checksum)

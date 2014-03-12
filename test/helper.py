@@ -64,6 +64,7 @@ class TestHelper(object):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
         plugins._classes = [check.CheckPlugin]
+        self.disableIntegrityCheckers()
 
     def tearDown(self):
         if hasattr(self, 'temp_dir'):
@@ -109,6 +110,17 @@ class TestHelper(object):
             item = Item.from_path(dst)
             item.add(self.lib)
             check.set_checksum(item)
+
+    def disableIntegrityCheckers(self):
+        check.IntegrityChecker._all = []
+        check.IntegrityChecker._all_available = []
+
+    def enableIntegrityCheckers(self):
+        if hasattr(check.IntegrityChecker, '_all'):
+            delattr(check.IntegrityChecker, '_all')
+        if hasattr(check.IntegrityChecker, '_all_available'):
+            delattr(check.IntegrityChecker, '_all_available')
+
 
     def modifyFile(self, path, title='a different title'):
         mediafile = MediaFile(path)

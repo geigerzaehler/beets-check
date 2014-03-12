@@ -11,7 +11,7 @@
 # all copies or substantial portions of the Software.
 
 
-import traceback
+import re
 import sys
 import os.path
 import logging
@@ -190,6 +190,9 @@ class CheckCommand(Subcommand):
             except ChecksumError:
                 log.error('{}: {}'.format(item.path, colorize('red', 'FAILED')))
                 failures += 1
+            except IntegrityError as ex:
+                log.error('{}: {} {}'.format(item.path,
+                                             colorize('yellow', 'WARNING'), ex))
             self.log_progress('Verifying checksums', index+1, total)
         if failures:
             self.log('Failed to verify checksum of {} file(s)'.format(failures))
@@ -249,6 +252,7 @@ class IntegrityChecker(object):
 
     program = None
     arguments = []
+    formats = []
 
     @classmethod
     def all(cls):
@@ -269,32 +273,49 @@ class IntegrityChecker(object):
         return False
 
     def run(self, item):
+        if item.format not in self.formats:
+            return
         process = Popen([self.program] + self.arguments + [item.path],
                         stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        self.parse(*process.communicate())
+        stdout, stderr = process.communicate()
+        self.parse(stdout, stderr, process.returncode)
 
-    def parse(self, stdout, stderr):
+    def parse(self, stdout, stderr, returncode):
         raise NotImplementedError
 
 
 class MP3Val(IntegrityChecker):
 
     program = 'mp3val'
+    formats = ['MP3']
 
-    def parse(self, stdout, stderr):
-        pass
+    log_matcher = re.compile( r'^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$')
+
+    def parse(self, stdout, stderr, returncode):
+        for line in stdout.split('\n'):
+            match = self.log_matcher.match(line)
+            if match:
+                raise IntegrityError(match.group(1))
 
 class FlacTest(IntegrityChecker):
 
     program = 'flac'
-    arguments = ['--test']
+    arguments = ['--test', '--silent']
+    formats = ['FLAC']
 
-    def parse(self, stdout, stderr):
-        pass
+    error_matcher = re.compile( r'^.*: ERROR,? (.*)$')
+
+    def parse(self, stdout, stderr, returncode):
+        if returncode == 0:
+            return
+        for line in stderr.split('\n'):
+            match = self.error_matcher.match(line)
+            if match:
+                raise IntegrityError('error {}'.format(match.group(1)))
 
 class OggzValidate(IntegrityChecker):
 
     program = 'oggz-validate'
 
-    def parse(self, stdout, stderr):
+    def parse(self, stdout, stderr, returncode):
         pass
