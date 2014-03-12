@@ -90,7 +90,6 @@ class ImportTest(TestHelper, TestCase):
         with self.mockAutotag(), controlStdin(' '), \
                 captureStdout() as stdout, captureLog() as logs:
             beets.ui._raw_main(['import', self.import_dir])
-        print stdout.getvalue()
 
         self.assertIn('Warning: failed to verify integrity', '\n'.join(logs))
         self.assertIn('truncated.mp3: file is corrupt', '\n'.join(logs))
