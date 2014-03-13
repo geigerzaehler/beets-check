@@ -271,6 +271,7 @@ class IntegrityChecker(object):
     program = None
     arguments = []
     formats = []
+    """As returned by ``item.formats``."""
 
     @classmethod
     def all(cls):
@@ -329,11 +330,15 @@ class FlacTest(IntegrityChecker):
         for line in stderr.split('\n'):
             match = self.error_matcher.match(line)
             if match:
-                raise IntegrityError('error {}'.format(match.group(1)))
+                raise IntegrityError(match.group(1))
 
 class OggzValidate(IntegrityChecker):
 
     program = 'oggz-validate'
+    formats = ['OGG']
 
     def parse(self, stdout, stderr, returncode):
-        pass
+        if returncode == 0:
+            return
+        error = stderr.split('\n')[1].replace(':', '')
+        raise IntegrityError(error)

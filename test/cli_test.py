@@ -138,7 +138,7 @@ class IntegrityCheckTest(TestHelper, TestCase):
     def tearDown(self):
         super(IntegrityCheckTest, self).tearDown()
 
-    def test_check_mp3_integrity(self):
+    def test_mp3_integrity(self):
         item = self.lib.items(['path::truncated.mp3']).get()
 
         with captureLog() as logs:
@@ -147,14 +147,24 @@ class IntegrityCheckTest(TestHelper, TestCase):
                       'truncated or there is garbage at the '
                       'end of the file: {}'.format(item.path), logs)
 
-    def test_check_flac_integrity(self):
+    def test_flac_integrity(self):
         print check.IntegrityChecker.all()
         item = self.lib.items('truncated.flac').get()
 
         with captureLog() as logs:
             beets.ui._raw_main(['check'])
         self.assertIn(
-            'WARNING error while decoding data: {}'.format(item.path), logs)
+            'WARNING while decoding data: {}'.format(item.path), logs)
+
+    def test_ogg_vorbis_integrity(self):
+        print check.IntegrityChecker.all()
+        item = self.lib.items('truncated.ogg').get()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check'])
+        self.assertIn(
+          'WARNING serialno 1038587646 missing *** eos: {}'.format(item.path),
+          logs)
 
 
 class ToolListTest(TestHelper, TestCase):
