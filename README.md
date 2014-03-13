@@ -151,7 +151,7 @@ code `15`.
   that command to check your files externally. For example
   `beet check -e | sha256sum -c`.
 
-- **`-l, --list-tools** Outputs a list of third party programs that
+- **`-l, --list-tools`** Outputs a list of third party programs that
   *beets-check* uses to verify file integrity and shows whether they are
   installed. The plugin comes with support for the
   [`oggz-validate`][oggz-validate], [`mp3val`][mp3val] and [`flac`][flac] commands.
