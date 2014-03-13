@@ -104,6 +104,9 @@ class ImportTest(TestHelper, TestCase):
             beets.ui._raw_main(['import', self.import_dir])
 
         self.assertEqual(len(self.lib.items()), 2)
+        item = self.lib.items('truncated').get()
+        mediafile = MediaFile(item.path)
+        self.assertEqual(mediafile.title, 'truncated tag')
 
 
 class WriteTest(TestHelper, TestCase):
@@ -134,6 +137,20 @@ class WriteTest(TestHelper, TestCase):
 
         mediafile = MediaFile(item.path)
         self.assertNotEqual(mediafile.title, 'newtitle')
+
+    def test_write_on_integrity_error(self):
+        MockChecker.install()
+
+        item = self.lib.items('truncated').get()
+
+        item['title'] = 'newtitle'
+        item.store()
+        beets.ui._raw_main(['write', item.title])
+
+        item.load()
+        check.verify_checksum(item)
+        mediafile = MediaFile(item.path)
+        self.assertEqual(mediafile.title, 'newtitle')
 
     def test_update_checksum(self):
         item = self.lib.items('ok').get()

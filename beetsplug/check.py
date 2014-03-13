@@ -88,7 +88,7 @@ class CheckPlugin(BeetsPlugin):
 
     def item_before_write(self, item):
         if item.get('checksum', None):
-            verify(item)
+            verify_checksum(item)
 
     def item_after_write(self, item):
         set_checksum(item)
