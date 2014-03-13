@@ -1,29 +1,18 @@
 from unittest import TestCase, skip
 
+import beets
 import beets.ui
 import beets.library
 from beets.library import Item, get_query
 from beets.mediafile import MediaFile
 from beets import plugins
 
-from helper import TestHelper, captureLog, controlStdin, captureStdout
+from helper import TestHelper, captureLog, \
+                   controlStdin, captureStdout, \
+                   MockChecker
 from beetsplug import check
 
 import logging
-
-class MockChecker(check.IntegrityChecker):
-    @classmethod
-    def install(cls):
-        check.IntegrityChecker._all_available = [cls()]
-
-    @classmethod
-    def restore(cls):
-        if hasattr(check.IntegrityChecker, '_all_available'):
-            delattr(check.IntegrityChecker, '_all_available')
-
-    def run(self, item):
-        if 'truncated' in item.path:
-            raise check.IntegrityError('file is corrupt')
 
 
 class ImportTest(TestHelper, TestCase):
@@ -94,6 +83,17 @@ class ImportTest(TestHelper, TestCase):
         self.assertIn('Warning: failed to verify integrity', '\n'.join(logs))
         self.assertIn('truncated.mp3: file is corrupt', '\n'.join(logs))
         self.assertIn('Do you want to skip this album', stdout.getvalue())
+        self.assertEqual(len(self.lib.items()), 0)
+
+    def test_quiet_skip_corrupt_files(self):
+        MockChecker.install()
+        self.setupImportDir(['ok.mp3', 'truncated.mp3'])
+
+        with self.mockAutotag(), captureLog() as logs:
+            beets.ui._raw_main(['import', '-q', self.import_dir])
+
+        self.assertIn('Warning: failed to verify integrity', logs)
+        self.assertIn('truncated.mp3: file is corrupt\nSkipping.', '\n'.join(logs))
         self.assertEqual(len(self.lib.items()), 0)
 
     def test_add_corrupt_files(self):

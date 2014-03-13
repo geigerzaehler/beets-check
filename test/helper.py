@@ -121,7 +121,6 @@ class TestHelper(object):
         if hasattr(check.IntegrityChecker, '_all_available'):
             delattr(check.IntegrityChecker, '_all_available')
 
-
     def modifyFile(self, path, title='a different title'):
         mediafile = MediaFile(path)
         mediafile.title = title
@@ -180,3 +179,18 @@ class AutotagMock(object):
         track_info = TrackInfo(title=title, track_id=self.nextid())
         match = TrackMatch(distance=Distance(), info=track_info)
         return [match], recommendation.strong
+
+
+class MockChecker(object):
+    @classmethod
+    def install(cls):
+        check.IntegrityChecker._all_available = [cls()]
+
+    @classmethod
+    def restore(cls):
+        if hasattr(check.IntegrityChecker, '_all_available'):
+            delattr(check.IntegrityChecker, '_all_available')
+
+    def run(self, item):
+        if 'truncated' in item.path:
+            raise check.IntegrityError('file is corrupt')

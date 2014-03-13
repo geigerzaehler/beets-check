@@ -6,7 +6,9 @@ import beets.library
 from beets.library import Item
 from beets.mediafile import MediaFile
 
-from helper import TestHelper, captureLog, captureStdout, controlStdin
+from helper import TestHelper, captureLog, \
+                   captureStdout, controlStdin, \
+                   MockChecker
 from beetsplug import check
 
 
@@ -41,6 +43,19 @@ class CheckTest(TestHelper, TestCase):
         item.load()
         self.assertEqual(item['checksum'], orig_checksum)
 
+    def test_add_shows_integrity_warning(self):
+        MockChecker.install()
+
+        item = self.lib.items('truncated').get()
+        del item['checksum']
+        item.store()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '-a'])
+
+        self.assertIn('WARNING file is corrupt: {}'.format(item.path),
+                      '\n'.join(logs))
+
     def test_check_success(self):
         with captureStdout() as stdout:
             beets.ui._raw_main(['check'])
@@ -57,7 +72,7 @@ class CheckTest(TestHelper, TestCase):
         except SystemExit:
             pass
 
-        self.assertIn('{}: FAILED'.format(item.path), '\n'.join(logs))
+        self.assertIn('FAILED: {}'.format(item.path), '\n'.join(logs))
 
     def test_check_failed_exit_code(self):
         item = self.lib.items().get()
@@ -124,21 +139,22 @@ class IntegrityCheckTest(TestHelper, TestCase):
         super(IntegrityCheckTest, self).tearDown()
 
     def test_check_mp3_integrity(self):
-        item = self.lib.items('truncated.mp3').get()
+        item = self.lib.items(['path::truncated.mp3']).get()
 
         with captureLog() as logs:
             beets.ui._raw_main(['check'])
-        self.assertIn('{}: WARNING It seems that file is '
+        self.assertIn('WARNING It seems that file is '
                       'truncated or there is garbage at the '
-                      'end of the file'.format(item.path), logs)
+                      'end of the file: {}'.format(item.path), logs)
 
-    def test_check_mp3_integrity(self):
+    def test_check_flac_integrity(self):
+        print check.IntegrityChecker.all()
         item = self.lib.items('truncated.flac').get()
 
         with captureLog() as logs:
             beets.ui._raw_main(['check'])
         self.assertIn(
-            '{}: WARNING error while decoding data'.format(item.path), logs)
+            'WARNING error while decoding data: {}'.format(item.path), logs)
 
 
 class ToolListTest(TestHelper, TestCase):

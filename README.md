@@ -1,31 +1,53 @@
 beets-check
 ===========
 
-*beets-check* is a plugin for [beets][] that lets you to verify the integrity
-of your audio files. It computes checksum for files in your library, stores
-them in the database and verifies them.
+*The [beets][] plugin for paranoid obsessive-compulsive music geeks.*
 
-To use the plugin you need the development version of beets. You can
-install it via
+*beets-check* lets you verify the integrity of your audio files. It
+computes and verifies checksums for files in your library and uses third
+party tools to [check the integrity] of audio data.
+
+If you want to use this plugin you need a development version of beets.
+
 ```
 pip install git+git://github.com/geigerzaehler/beets.git@check-plugin
 pip install git+git://github.com/geigerzaehler/beets-check.git
 ```
 
-To get started compute and store checksums for your files.
+If you want to use third-party tools to verify the integrity of your
+audio files you have to install them on your system manually. Run `beet
+check --list-tools` to see the list of programs that the plugin can use.
+
+
+Usage
+-----
+
+Let’s get started and add checksums for your library.
+
 ```
 $ beet check -a
+WARNING integrity error: /music/Abbey Road/01 Come Together.mp3
 Adding unknown checksums:  1032/8337 [12%]
 ```
-This command adds a checksum for all files in your library that dont’t
-have one yet.
 
-To verify the checksums against their file run
+This command adds a checksum for all files in your library that dont’t
+have one yet. It also looks for integrity errors in the file’s audio
+content and prints a warning.
+
+If you want to make sure that your files have stayed the same, run
+
 ```
 $ beet check
-/music/A Day in the Life.mp3: FAILED
+WARNING integrity error: /music/Abbey Road/01 Come Together.mp3
+FAILED: /music/Sgt. Pepper/13 A Day in the Life.mp3
 Verifying checksums:  5102/8337 [53%]
 ```
+
+For later inspection you might want to keep a log.  To do that just
+redirect the error output with `beet check 2>check.log`. All `WARNING`
+and `ERROR` lines are sent to stderr, so you will still see the
+progressbar.
+
 
 If you changed one of the files on purpose, its checksum most certainly will
 have changed, too. So go ahead and update the database.
@@ -34,64 +56,14 @@ $ beet check -u 'album:Sgt. Pepper'
 Updating checksums:  2/13 [15%]
 ```
 
+### Usage with `import`
+
 Since, it would be tedious to run `check -a` every time you import new music
 into beets, *beets-check* will do this for you automatically. The plugin
 hooks into the importer and after a tracks has been added to the
 database and all tracks have been written it will add a checksum for
-that file.
-
-The same goes for the [`write`][write] and [`modify`][modify]
-commands. These commands update the tags of audio files and this
-invalidates their checksum, so beets recalculates it after the file has
-been modified.
-```
-$ beet check -e 'title:A Day in the Life'
-ded5...363f */music/life.mp3
-
-$ beet modify 'artist=The Beatles' title:A Day in the Life'
-
-$ beet check -e 'title:A Day in the Life'
-d942...5a82 */music/life.mp3
-```
-
-To make sure that a file hasn’t changed before beets writes it, the
-plugin will verify the checksum before anything is modified.  If the
-check failes, beets will not write the file and issue a warning.
-
-
-```
-$ beet modify 'artist=The Beatles' 'title:A Day in the Life'
-could not write /music/life.mp3: checksum did not match value in library
-```
-
-
-[beets]: http://beets.readthedocs.org/en/latest
-[write]: http://beets.readthedocs.org/en/latest/reference/cli.html#write
-[modify]: http://beets.readthedocs.org/en/latest/reference/cli.html#modify
-
-
-Format-Specific Integretiy Checks
----------------------------------
-
-Checksums alone cannot find errors in the files content. For example,
-prior to the import an MP3 file may have been truncated by an incomplete
-download. To detect these error the plugin uses third party tools.
-
-Integrity checks are supported for the OGG, MP3, and FLAC formats. They
-use the [`oggz-validate`][oggz-validate], [`mp3val`][mp3val] and
-[`flac`][flac] (with the `--test` flag) commands. These programs have to
-be installed on your system. To show a list of available tools use
-
-```
-$ beet check --list-tools
-oggz-validate   found
-mp3val          found
-flac            missing
-```
-
-Similar to checksum verification, integrity checks are performed before
-writing a file. In addition the integrity of files that are about to be
-imported is checked.
+that file. It will also check the file integrity and ask you to confirm
+importing corrupt files.
 
 ```
 $ beet import 'Abbey Road'
@@ -105,15 +77,43 @@ Warning: failed to verify integrity
 Do you want to skip this album? (Y/n)
 ```
 
-To check files that are already in your library run
+If you run `import` with the `--quiet` flag will skip corrupted files
+automatically and log an error.
+
+### Usage with `write` and `modify`
+
+*beets-check* hooks into the [`write`][write] and [`modify`][modify]
+commands similar to `import`. These commands update the tags of audio
+files and this invalidates their checksum, so beets recalculates it
+after the file has been modified.
+
 ```
-$ beet check
-Abbey Road/01 Come Together.mp3: WARNING MPEG stream error
+$ beet check -e 'title:A Day in the Life'
+ded5...363f */music/life.mp3
+
+$ beet modify 'artist=The Beatles' title:A Day in the Life'
+
+$ beet check -e 'title:A Day in the Life'
+d942...5a82 */music/life.mp3
 ```
 
-[flac]: https://xiph.org/flac/documentation_tools_flac.html
-[mp3val]: http://mp3val.sourceforge.net/
-[oggz-validate]: https://www.xiph.org/oggz/
+To make sure that a file hasn’t changed before beets changes it, the
+plugin will verify the checksum before the file is written.  If the
+check fails, beets will not write the file and issue a warning.
+
+
+```
+$ beet modify 'artist=The Beatles' 'title:A Day in the Life'
+could not write /music/life.mp3: checksum did not match value in library
+```
+
+TODO update to new plugin api.
+
+
+[beets]: http://beets.readthedocs.org/en/latest
+[write]: http://beets.readthedocs.org/en/latest/reference/cli.html#write
+[modify]: http://beets.readthedocs.org/en/latest/reference/cli.html#modify
+
 
 
 CLI Reference
@@ -121,6 +121,7 @@ CLI Reference
 
 ```
 beet check [--quiet] [--add | [--update [--force]] | --export] [QUERY...]
+beet check --list-tools
 ```
 
 The `QUERY` argument will restrict all operations to files matching the
@@ -128,7 +129,7 @@ query.  Remember, if a query contains a slash beets will [interpret it
 as a path][path query] and match all files that are contained in a
 subdirectory of that path.
 
-Without the `-a`, `-u` and `-e` options, the command will verify all
+Without any of the `-a`, `-u`, `-e`, and `-l` flags, the command will verify all
 items that are matched by the query. If the standard output is a
 terminal it shows a progress statement like in the example above. If the
 verification of a file failed the command prints `/path/to/file: FAILED`
@@ -145,15 +146,24 @@ code `15`.
   certainly not what you want, beets will ask you for confirmation in that
   case unless the `--force` flag is set.
 
-- **`-e, export [QUERY...]`** Outputs a list of filenames with corresponding
+- **`-e, --export [QUERY...]`** Outputs a list of filenames with corresponding
   checksums in the format used by the `sha256sum` command. You can then use
   that command to check your files externally. For example
   `beet check -e | sha256sum -c`.
+
+- **`-l, --list-tools** Outputs a list of third party programs that
+  *beets-check* uses to verify file integrity and shows whether they are
+  installed. The plugin comes with support for the
+  [`oggz-validate`][oggz-validate], [`mp3val`][mp3val] and [`flac`][flac] commands.
 
 - **`-q, --quiet`** Suppresses the progress line but still prints verification
   errors. This is the default if stdout is not connected to a terminal
 
 [path query]: http://beets.readthedocs.org/en/latest/reference/query.html#path-queries
+[flac]: https://xiph.org/flac/documentation_tools_flac.html
+[mp3val]: http://mp3val.sourceforge.net/
+[oggz-validate]: https://www.xiph.org/oggz/
+
 
 
 Configuration

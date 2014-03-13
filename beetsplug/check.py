@@ -19,9 +19,10 @@ from subprocess import Popen, PIPE
 from hashlib import sha256
 from optparse import OptionParser
 
+import beets
+from beets import importer
 from beets.plugins import BeetsPlugin, BeforeWriteError
 from beets.ui import Subcommand, decargs, colorize, input_yn
-from beets import importer
 
 
 log = logging.getLogger('beets.check')
@@ -37,8 +38,14 @@ def compute_checksum(item):
     return hash.hexdigest()
 
 def verify(item):
+    verify_checksum(item)
+    verify_integrity(item)
+
+def verify_checksum(item):
     if item['checksum'] != compute_checksum(item):
         raise ChecksumError('checksum did not match value in library.')
+
+def verify_integrity(item):
     for checker in IntegrityChecker.allAvailable():
         checker.run(item)
 
@@ -112,9 +119,10 @@ class CheckPlugin(BeetsPlugin):
             log.warn('Warning: failed to verify integrity')
             for error in integrity_errors:
                 log.warn('  {}: {}'.format(item.path, error))
-            if input_yn('Do you want to skip this album (Y/n)'):
+            if beets.config['import']['quiet'] \
+               or input_yn('Do you want to skip this album (Y/n)'):
+                log.info('Skipping.')
                 task.choice_flag = importer.action.SKIP
-
 
 
 class CheckCommand(Subcommand):
@@ -175,6 +183,12 @@ class CheckCommand(Subcommand):
         for index, item in enumerate(items):
             log.debug('adding checksum for {0}'.format(item.path))
             set_checksum(item)
+            try:
+                verify_integrity(item)
+            except IntegrityError as ex:
+                log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'), ex,
+                                            item.path))
+
             self.log_progress('Adding missing checksums', index+1, total)
 
     def check(self):
@@ -183,17 +197,21 @@ class CheckCommand(Subcommand):
                             if i.get('checksum', None)]
         total = len(items)
         failures = 0
+        integrity = 0
         for index, item in enumerate(items):
             try:
                 verify(item)
-                log.debug('{}: {}'.format(item.path, colorize('green', 'OK')))
+                log.debug('{}: {}'.format(colorize('green', 'OK'), item.path))
             except ChecksumError:
-                log.error('{}: {}'.format(item.path, colorize('red', 'FAILED')))
+                log.error('{}: {}'.format(colorize('red', 'FAILED'), item.path))
                 failures += 1
             except IntegrityError as ex:
-                log.error('{}: {} {}'.format(item.path,
-                                             colorize('yellow', 'WARNING'), ex))
+                log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'), ex,
+                                            item.path))
+                integrity += 1
             self.log_progress('Verifying checksums', index+1, total)
+        if integrity:
+            self.log('Found {} integrity error(s)'.format(integrity))
         if failures:
             self.log('Failed to verify checksum of {} file(s)'.format(failures))
             sys.exit(15)
