@@ -3,9 +3,9 @@ beets-check
 
 *The [beets][] plugin for paranoid obsessive-compulsive music geeks.*
 
-*beets-check* lets you verify the integrity of your audio files. It
-computes and verifies checksums for files in your library and uses third
-party tools to [check the integrity] of audio data.
+*beets-check* lets you verify the integrity of your audio files. It computes
+and validates file checksums and uses third party tools to check the integrity
+of audio data.
 
 If you want to use this plugin you need a development version of beets.
 
@@ -15,14 +15,14 @@ pip install git+git://github.com/geigerzaehler/beets-check.git
 ```
 
 If you want to use third-party tools to verify the integrity of your
-audio files you have to install them on your system manually. Run `beet
+audio files you have to manually install them on your system. Run `beet
 check --list-tools` to see the list of programs that the plugin can use.
 
 
 Usage
 -----
 
-Let’s get started and add checksums for your library.
+Let’s get started and add some checksums to your library.
 
 ```
 $ beet check -a
@@ -30,11 +30,11 @@ WARNING integrity error: /music/Abbey Road/01 Come Together.mp3
 Adding unknown checksums:  1032/8337 [12%]
 ```
 
-This command adds a checksum for all files in your library that dont’t
-have one yet. It also looks for integrity errors in the file’s audio
-content and prints a warning.
+This command calculates the checksums of all files in your library that dont’t
+have one yet and stores the in them database. It also prints a warning if one of the integrity tools has found an error.
 
-If you want to make sure that your files have stayed the same, run
+After some time (or maybe a system crash) you’ll probably want to go back to
+your library and verify that none of the files has changed. To do this run
 
 ```
 $ beet check
@@ -49,8 +49,8 @@ and `ERROR` lines are sent to stderr, so you will still see the
 progressbar.
 
 
-If you changed one of the files on purpose, its checksum most certainly will
-have changed, too. So go ahead and update the database.
+If you have changed one of the files on purpose, its checksum most certainly
+will have changed, too. So go ahead and update the database.
 ```
 $ beet check -u 'album:Sgt. Pepper'
 Updating checksums:  2/13 [15%]
@@ -58,12 +58,10 @@ Updating checksums:  2/13 [15%]
 
 ### Usage with `import`
 
-Since, it would be tedious to run `check -a` every time you import new music
-into beets, *beets-check* will do this for you automatically. The plugin
-hooks into the importer and after a tracks has been added to the
-database and all tracks have been written it will add a checksum for
-that file. It will also check the file integrity and ask you to confirm
-importing corrupt files.
+Since it would be tedious to run `check -a` every time you import new music
+into beets, *beets-check* will add checksum automatically. Before an album or
+track is imported an integrity check is run. If the check fails beets will ask
+you to confirm the import.
 
 ```
 $ beet import 'Abbey Road'
@@ -77,15 +75,20 @@ Warning: failed to verify integrity
 Do you want to skip this album? (Y/n)
 ```
 
-If you run `import` with the `--quiet` flag will skip corrupted files
-automatically and log an error.
+After a track has been added to the database and all modifications to the tags
+have been written beets-check adds the checksums. This is virtually the same as
+running ``beets check -a `` after the import.
+
+If you run `import` with the `--quiet` flag the importer will skip corrupted
+files automatically and log an error.
+
 
 ### Usage with `write` and `modify`
 
-*beets-check* hooks into the [`write`][write] and [`modify`][modify]
-commands similar to `import`. These commands update the tags of audio
-files and this invalidates their checksum, so beets recalculates it
-after the file has been modified.
+The [`write`][write] and [`modify`][modify] commands change a file’s
+content and this invalidates its checksum. To relieve you from updating the
+checksum manually, the plugin will recalculate the checksums of all the files
+that were changed.
 
 ```
 $ beet check -e 'title:A Day in the Life'
@@ -96,6 +99,9 @@ $ beet modify 'artist=The Beatles' title:A Day in the Life'
 $ beet check -e 'title:A Day in the Life'
 d942...5a82 */music/life.mp3
 ```
+
+This is basically equivalent to running `beets check -u QUERY` after a
+`write` or `modify` command
 
 To make sure that a file hasn’t changed before beets changes it, the
 plugin will verify the checksum before the file is written.  If the
@@ -176,7 +182,7 @@ check:
   import: yes
   write-check: yes
   write-update: yes
-  integrity: no
+  integrity: yes
 ```
 
 These option control at which point *beets-check* will be used automatically by
