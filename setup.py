@@ -3,7 +3,7 @@ from setuptools import setup
 with open('README.md') as desc:
     long_description = desc.read()
 setup(name='beets-check',
-      version='0.9.0-beta',
+      version='0.9.0-beta.2',
       description='beets plugin verifying file integrity with checksums',
       long_description=long_description,
       author='Thomas Scholtes',

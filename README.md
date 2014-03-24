@@ -10,7 +10,7 @@ party tools to [check the integrity] of audio data.
 If you want to use this plugin you need a development version of beets.
 
 ```
-pip install git+git://github.com/geigerzaehler/beets.git@check-plugin
+pip install git+git://github.com/sampsyo/beets.git@4a6e3f12
 pip install git+git://github.com/geigerzaehler/beets-check.git
 ```
 

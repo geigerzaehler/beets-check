@@ -21,8 +21,9 @@ from optparse import OptionParser
 
 import beets
 from beets import importer
-from beets.plugins import BeetsPlugin, BeforeWriteError
+from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, decargs, colorize, input_yn
+from beets.library import WriteError
 
 
 log = logging.getLogger('beets.check')
@@ -50,7 +51,7 @@ def verify_integrity(item):
         checker.run(item)
 
 
-class ChecksumError(BeforeWriteError): pass
+class ChecksumError(WriteError): pass
 
 
 class CheckPlugin(BeetsPlugin):
@@ -263,7 +264,7 @@ class CheckCommand(Subcommand):
             sys.stdout.write(len(msg)*' ' + '\r')
 
 
-class IntegrityError(BeforeWriteError): pass
+class IntegrityError(WriteError): pass
 
 
 class IntegrityChecker(object):
