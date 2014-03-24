@@ -7,7 +7,7 @@ install:
   - "sudo apt-get install flac"
   - "sudo apt-get install mp3val"
   - "sudo apt-get install oggz-tools"
-  - "pip install git+git://github.com/geigerzaehler/beets.git@check-plugin"
+  - "pip install git+git://github.com/sampsyo/beets.git@4a6e3f12"
   - "pip install coveralls"
   - "pip install ."
 
