@@ -27,7 +27,7 @@ class LogCapture(logging.Handler):
         self.messages = []
 
     def emit(self, record):
-        self.messages.append(record.msg)
+        self.messages.append(str(record.msg))
 
 
 @contextmanager
@@ -193,4 +193,4 @@ class MockChecker(object):
 
     def run(self, item):
         if 'truncated' in item.path:
-            raise check.IntegrityError('file is corrupt')
+            raise check.IntegrityError(item.path, 'file is corrupt')

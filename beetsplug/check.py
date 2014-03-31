@@ -23,7 +23,7 @@ import beets
 from beets import importer
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, decargs, colorize, input_yn
-from beets.library import WriteError
+from beets.library import ReadError
 
 
 log = logging.getLogger('beets.check')
@@ -44,14 +44,14 @@ def verify(item):
 
 def verify_checksum(item):
     if item['checksum'] != compute_checksum(item):
-        raise ChecksumError('checksum did not match value in library.')
+        raise ChecksumError(item.path, 'checksum did not match value in library.')
 
 def verify_integrity(item):
     for checker in IntegrityChecker.allAvailable():
         checker.run(item)
 
 
-class ChecksumError(WriteError): pass
+class ChecksumError(ReadError): pass
 
 
 class CheckPlugin(BeetsPlugin):
@@ -187,8 +187,8 @@ class CheckCommand(Subcommand):
             try:
                 verify_integrity(item)
             except IntegrityError as ex:
-                log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'), ex,
-                                            item.path))
+                log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
+                                            ex.reason, item.path))
 
             self.log_progress('Adding missing checksums', index+1, total)
 
@@ -207,8 +207,9 @@ class CheckCommand(Subcommand):
                 log.error('{}: {}'.format(colorize('red', 'FAILED'), item.path))
                 failures += 1
             except IntegrityError as ex:
-                log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'), ex,
-                                            item.path))
+                print ex.reason
+                log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
+                                            ex.reason, item.path))
                 integrity += 1
             self.log_progress('Verifying checksums', index+1, total)
         if integrity:
@@ -264,7 +265,7 @@ class CheckCommand(Subcommand):
             sys.stdout.write(len(msg)*' ' + '\r')
 
 
-class IntegrityError(WriteError): pass
+class IntegrityError(ReadError): pass
 
 
 class IntegrityChecker(object):
@@ -298,9 +299,9 @@ class IntegrityChecker(object):
         process = Popen([self.program] + self.arguments + [item.path],
                         stdin=PIPE, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
-        self.parse(stdout, stderr, process.returncode)
+        self.parse(stdout, stderr, process.returncode, item.path)
 
-    def parse(self, stdout, stderr, returncode):
+    def parse(self, stdout, stderr, returncode, path):
         raise NotImplementedError
 
 
@@ -311,11 +312,11 @@ class MP3Val(IntegrityChecker):
 
     log_matcher = re.compile( r'^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$')
 
-    def parse(self, stdout, stderr, returncode):
+    def parse(self, stdout, stderr, returncode, path):
         for line in stdout.split('\n'):
             match = self.log_matcher.match(line)
             if match:
-                raise IntegrityError(match.group(1))
+                raise IntegrityError(path, match.group(1))
 
 class FlacTest(IntegrityChecker):
 
@@ -325,21 +326,21 @@ class FlacTest(IntegrityChecker):
 
     error_matcher = re.compile( r'^.*: ERROR,? (.*)$')
 
-    def parse(self, stdout, stderr, returncode):
+    def parse(self, stdout, stderr, returncode, path):
         if returncode == 0:
             return
         for line in stderr.split('\n'):
             match = self.error_matcher.match(line)
             if match:
-                raise IntegrityError(match.group(1))
+                raise IntegrityError(path, match.group(1))
 
 class OggzValidate(IntegrityChecker):
 
     program = 'oggz-validate'
     formats = ['OGG']
 
-    def parse(self, stdout, stderr, returncode):
+    def parse(self, stdout, stderr, returncode, path):
         if returncode == 0:
             return
         error = stderr.split('\n')[1].replace(':', '')
-        raise IntegrityError(error)
+        raise IntegrityError(path, error)

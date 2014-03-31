@@ -124,7 +124,7 @@ class WriteTest(TestHelper, TestCase):
         with captureLog() as logs:
             beets.ui._raw_main(['write', item.title])
         self.assertRegexpMatches('\n'.join(logs),
-                r'could not write .*: checksum did not match value in library')
+                r'error reading .*: checksum did not match value in library')
 
     def test_abort_write_when_invalid_checksum(self):
         item = self.lib.items('ok').get()
