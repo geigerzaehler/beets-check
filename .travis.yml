@@ -7,7 +7,7 @@ install:
   - "sudo apt-get install flac"
   - "sudo apt-get install mp3val"
   - "sudo apt-get install oggz-tools"
-  - "pip install coveralls"
+  - "pip install coveralls tox"
 
 script: tox
 
