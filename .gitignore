@@ -4,3 +4,4 @@ build/
 .coverage
 coverage/
 *.pyc
+.tox/

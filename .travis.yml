@@ -7,10 +7,8 @@ install:
   - "sudo apt-get install flac"
   - "sudo apt-get install mp3val"
   - "sudo apt-get install oggz-tools"
-  - "pip install git+git://github.com/sampsyo/beets.git@master"
   - "pip install coveralls"
-  - "pip install ."
 
-script: nosetests
+script: tox
 
 after_success: coveralls
