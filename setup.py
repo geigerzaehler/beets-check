@@ -15,7 +15,6 @@ setup(name='beets-check',
       test_suite='test',
 
       packages=['beetsplug'],
-      namespace_packages=['beetsplug'],
 
       install_requires=[
           'beets>=1.3.4',
