@@ -63,7 +63,7 @@ class TestHelper(object):
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
-        plugins._classes = [check.CheckPlugin]
+        plugins._classes = set([check.CheckPlugin])
         self.disableIntegrityCheckers()
 
     def tearDown(self):

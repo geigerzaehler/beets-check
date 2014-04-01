@@ -1,3 +1,4 @@
+import os.path
 from unittest import TestCase, skip
 
 import beets
@@ -167,3 +168,22 @@ class WriteTest(TestHelper, TestCase):
 
         mediafile = MediaFile(item.path)
         self.assertEqual(mediafile.title, 'newtitle')
+
+
+class ConvertTest(TestHelper, TestCase):
+
+    def setUp(self):
+        super(ConvertTest, self).setUp()
+        self.setupBeets()
+        beets.config['plugins'] = ['convert']
+        beets.config['convert'] = {
+            'dest': os.path.join(self.temp_dir, 'convert'),
+            # Truncated copy to break checksum
+            'command': u'dd bs=1024 count=6 if=$source of=$dest',
+        }
+        self.setupFixtureLibrary()
+
+    @skip('not yet fixed')
+    def test_convert_command(self):
+        with controlStdin('y'):
+            beets.ui._raw_main(['convert', 'ok.ogg'])
