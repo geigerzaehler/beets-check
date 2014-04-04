@@ -4,9 +4,7 @@ notifications:
 language: python
 
 install:
-  - "sudo apt-get install flac"
-  - "sudo apt-get install mp3val"
-  - "sudo apt-get install oggz-tools"
+  - "sudo apt-get install flac mp3val oggz-tools"
   - "pip install coveralls tox"
 
 script: tox
