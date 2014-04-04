@@ -87,7 +87,9 @@ class CheckPlugin(BeetsPlugin):
         if not item.get('checksum', None):
             set_checksum(item)
 
-    def item_before_write(self, item):
+    def item_before_write(self, item, path):
+        if path != item.path:
+            return
         if item.get('checksum', None):
             verify_checksum(item)
 

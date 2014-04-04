@@ -10,13 +10,13 @@ of audio data.
 If you want to use this plugin you need a development version of beets.
 
 ```
-pip install git+git://github.com/sampsyo/beets.git@4a6e3f12
+pip install git+git://github.com/sampsyo/beets.git@694150410b
 pip install git+git://github.com/geigerzaehler/beets-check.git
 ```
 
 If you want to use third-party tools to verify the integrity of your
 audio files you have to manually install them on your system. Run `beet
-check --list-tools` to see the list of programs that the plugin can use.
+check --list-tools` to see a list of programs that the plugin can use.
 
 
 Usage
@@ -76,7 +76,7 @@ Do you want to skip this album? (Y/n)
 ```
 
 After a track has been added to the database and all modifications to the tags
-have been written beets-check adds the checksums. This is virtually the same as
+have been written, beets-check adds the checksums. This is virtually the same as
 running ``beets check -a `` after the import.
 
 If you run `import` with the `--quiet` flag the importer will skip corrupted
@@ -113,9 +113,6 @@ $ beet modify 'artist=The Beatles' 'title:A Day in the Life'
 could not write /music/life.mp3: checksum did not match value in library
 ```
 
-TODO update to new plugin api.
-
-
 [beets]: http://beets.readthedocs.org/en/latest
 [write]: http://beets.readthedocs.org/en/latest/reference/cli.html#write
 [modify]: http://beets.readthedocs.org/en/latest/reference/cli.html#modify
@@ -135,16 +132,17 @@ query.  Remember, if a query contains a slash beets will [interpret it
 as a path][path query] and match all files that are contained in a
 subdirectory of that path.
 
-Without any of the `-a`, `-u`, `-e`, and `-l` flags, the command will verify all
-items that are matched by the query. If the standard output is a
-terminal it shows a progress statement like in the example above. If the
-verification of a file failed the command prints `/path/to/file: FAILED`
-to the error output but continues checking the remaining files. If at
-least one file could not be verified the program will exit with exit
-code `15`.
+Without any of the `-a`, `-u`, `-e`, and `-l` flags, the command will verify
+all items that are matched by the query. If the standard output is a terminal
+it shows a progress statement like in the example above. If the checksum
+verification of a file failed the command prints `FAILED: /path/to/file` to the
+error output. And if one of the third-party tools detects an error it will
+print `WARNING error description: /path/to/file` to stderr . If at least one
+file has an invalid checksum the program will exit with status code `15`.
 
-- **`-a, --add [QUERY...]`** Calculate the checksum for files that don’t have one yet
-  and add it to the database.
+- **`-a, --add [QUERY...]`** Look for files in the database that don’t have a
+  checksum, compute it from the file and add it to the database. This will also
+  print warnings for failed integrity checks.
 
 - **`-u, --update [QUERY...]`** Calculate checksums for all files matching the
   query and write the them to the database. If no query is given this will
@@ -162,8 +160,8 @@ code `15`.
   installed. The plugin comes with support for the
   [`oggz-validate`][oggz-validate], [`mp3val`][mp3val] and [`flac`][flac] commands.
 
-- **`-q, --quiet`** Suppresses the progress line but still prints verification
-  errors. This is the default if stdout is not connected to a terminal
+- **`-q, --quiet`** Suppresse the progress line but still print verification
+  errors. This is the default if stdout is not connected to a terminal.
 
 [path query]: http://beets.readthedocs.org/en/latest/reference/query.html#path-queries
 [flac]: https://xiph.org/flac/documentation_tools_flac.html
@@ -188,7 +186,9 @@ check:
 These option control at which point *beets-check* will be used automatically by
 other beets commands. You can disable each option by setting its value to `no`.
 
-* `import: no` Don’t add checksums for new files during the import process
+* `import: no` Don’t add checksums for new files during the import process.
+  This also disables integrity checks on import and will not ask you to skip
+  the import of corrupted files.
 * `write-check: no` Don’t verify checksums before writing files with
   `beet write` or `beet modify`.
 * `write-update: no` Don’t update checksums after writing files with

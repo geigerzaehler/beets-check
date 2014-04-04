@@ -183,7 +183,6 @@ class ConvertTest(TestHelper, TestCase):
         }
         self.setupFixtureLibrary()
 
-    @skip('not yet fixed')
     def test_convert_command(self):
         with controlStdin('y'):
             beets.ui._raw_main(['convert', 'ok.ogg'])
