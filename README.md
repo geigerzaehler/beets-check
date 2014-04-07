@@ -31,8 +31,10 @@ WARNING integrity error: /music/Abbey Road/01 Come Together.mp3
 Adding unknown checksums:  1032/8337 [12%]
 ```
 
-This command calculates the checksums of all files in your library that dont’t
-have one yet and stores the in them database. It also prints a warning if one of the integrity tools has found an error.
+The `check` command looks for all files that don’t have a checksum yet.
+It computes the checksum for each of these files and stores it in the
+database.  The command also prints a warning if one of the integrity
+tools has found an error.
 
 After some time (or maybe a system crash) you’ll probably want to go back to
 your library and verify that none of the files has changed. To do this run
@@ -114,9 +116,22 @@ $ beet modify 'artist=The Beatles' 'title:A Day in the Life'
 could not write /music/life.mp3: checksum did not match value in library
 ```
 
+
+### Usage with `convert`
+
+The [`convert`][convert] plugin can replace an audio file with a
+transcoded version using the `--keep-new` flag. This will invalidate you
+checksum, but *beets-check* knows about this and will update the
+checksum automatically. You can disable this behaviour in the plugin
+configuration. Note that, at the moment we do not verify the checksum
+prior to the conversion, so a corrupted file might go undetected. This
+feature is also only available with the master branch of beets
+
+
 [beets]: http://beets.readthedocs.org/en/latest
 [write]: http://beets.readthedocs.org/en/latest/reference/cli.html#write
 [modify]: http://beets.readthedocs.org/en/latest/reference/cli.html#modify
+[convert]: http://beets.readthedocs.org/en/latest/plugins/convert.html
 
 
 
@@ -181,6 +196,7 @@ check:
   import: yes
   write-check: yes
   write-update: yes
+  convert-update: yes
   integrity: yes
 ```
 
@@ -194,6 +210,8 @@ other beets commands. You can disable each option by setting its value to `no`.
   `beet write` or `beet modify`.
 * `write-update: no` Don’t update checksums after writing files with
   `beet write` or `beet modify`.
+* `convert-update: no` Don’t updated the checksum if a file has been
+  converted with the `--keep-new` flag.
 * `integrity: no` Don’t use third party tools to check the integrity of
   a file.
 

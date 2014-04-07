@@ -63,6 +63,7 @@ class CheckPlugin(BeetsPlugin):
             'write-check': True,
             'write-update': True,
             'integrity': True,
+            'convert-update': True,
         })
         if self.config['import']:
             self.register_listener('item_imported', self.item_imported)
@@ -72,6 +73,8 @@ class CheckPlugin(BeetsPlugin):
             self.register_listener('write', self.item_before_write)
         if self.config['write-update']:
             self.register_listener('after_write', self.item_after_write)
+        if self.config['convert-update']:
+            self.register_listener('after_convert', self.after_convert)
         if self.config['integrity']:
             self.register_listener('import_task_choice', self.verify_import_integrity)
 
@@ -95,6 +98,12 @@ class CheckPlugin(BeetsPlugin):
 
     def item_after_write(self, item):
         set_checksum(item)
+
+    def after_convert(self, item, dest, keepnew):
+        if keepnew and item.path == dest:
+            print 'set', item['checksum']
+            set_checksum(item)
+            print 'set', item['checksum']
 
     def copy_original_checksum(self, config, task):
         for item in task.imported_items():
