@@ -96,14 +96,14 @@ class CheckPlugin(BeetsPlugin):
         if item.get('checksum', None):
             verify_checksum(item)
 
-    def item_after_write(self, item):
+    def item_after_write(self, item, path):
+        if path != item.path:
+            return
         set_checksum(item)
 
     def after_convert(self, item, dest, keepnew):
-        if keepnew and item.path == dest:
-            print 'set', item['checksum']
+        if keepnew:
             set_checksum(item)
-            print 'set', item['checksum']
 
     def copy_original_checksum(self, config, task):
         for item in task.imported_items():
