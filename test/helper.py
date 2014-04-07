@@ -67,6 +67,7 @@ class TestHelper(object):
         self.disableIntegrityCheckers()
 
     def tearDown(self):
+        self.unloadPlugins()
         if hasattr(self, 'temp_dir'):
             shutil.rmtree(self.temp_dir)
 
@@ -134,6 +135,12 @@ class TestHelper(object):
             yield
         finally:
             mock.restore()
+
+    def unloadPlugins(self):
+        for plugin in plugins._classes:
+            plugin.listeners = None
+        plugins._classes = set()
+        plugins._instances = {}
 
 
 class AutotagMock(object):

@@ -99,6 +99,8 @@ class ImportTest(TestHelper, TestCase):
 
     def test_add_corrupt_files(self):
         MockChecker.install()
+        print plugins._classes, plugins._instances
+        print self.config['plugins']
         self.setupImportDir(['ok.mp3', 'truncated.mp3'])
 
         with self.mockAutotag(), controlStdin('n'):
@@ -186,3 +188,15 @@ class ConvertTest(TestHelper, TestCase):
     def test_convert_command(self):
         with controlStdin('y'):
             beets.ui._raw_main(['convert', 'ok.ogg'])
+
+    def test_update_after_keep_new_convert(self):
+        item = self.lib.items('ok.ogg').get()
+        check.verify(item)
+
+        with controlStdin('y'):
+            beets.ui._raw_main(['convert', '--keep-new', 'ok.ogg'])
+
+        converted = self.lib.items('ok.ogg').get()
+        self.assertNotEqual(converted.path, item.path)
+        self.assertNotEqual(converted.checksum, item.checksum)
+        check.verify(converted)
