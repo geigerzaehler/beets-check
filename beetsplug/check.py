@@ -218,7 +218,6 @@ class CheckCommand(Subcommand):
                 log.error('{}: {}'.format(colorize('red', 'FAILED'), item.path))
                 failures += 1
             except IntegrityError as ex:
-                print ex.reason
                 log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
                                             ex.reason, item.path))
                 integrity += 1
