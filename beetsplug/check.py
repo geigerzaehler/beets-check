@@ -197,9 +197,8 @@ class CheckCommand(Subcommand):
         self.log('Looking for files without checksums...')
         items = [i for i in self.lib.items(self.query)
                             if not i.get('checksum', None)]
-        total = len(items)
 
-        def add((index, item)):
+        def add(item):
             log.debug('adding checksum for {0}'.format(item.path))
             set_checksum(item)
             try:
@@ -207,9 +206,8 @@ class CheckCommand(Subcommand):
             except IntegrityError as ex:
                 log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
                                             ex.reason, item.path))
-            self.log_progress('Adding missing checksums', index+1, total)
 
-        self.executor_iterate(add, enumerate(items))
+        self.execute_with_progress(add, items, msg='Adding missing checksums')
 
     def check(self):
         self.log('Looking up files with checksums...')
@@ -218,7 +216,7 @@ class CheckCommand(Subcommand):
         total = len(items)
         status = {'failures': 0, 'integrity': 0}
 
-        def check_item((index, item)):
+        def check(item):
             try:
                 verify(item)
                 log.debug('{}: {}'.format(colorize('green', 'OK'), item.path))
@@ -229,9 +227,8 @@ class CheckCommand(Subcommand):
                 log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
                                             ex.reason, item.path))
                 status['integrity'] += 1
-            self.log_progress('Verifying checksums', index+1, total)
 
-        self.executor_iterate(check_item, enumerate(items))
+        self.execute_with_progress(check, items, msg='Verifying checksums')
 
         if status['integrity']:
             self.log('Found {} integrity error(s)'.format(status['integrity']))
@@ -251,12 +248,11 @@ class CheckCommand(Subcommand):
         items = self.lib.items(self.query)
         total = len(items)
 
-        def update_checksum((index, item)):
+        def update(item):
             log.debug('updating checksum: {}'.format(item.path))
             set_checksum(item)
-            self.log_progress('Updating checksums', index+1, total)
 
-        self.executor_iterate(update_checksum, enumerate(items))
+        self.execute_with_progress(update, items, msg='Updating checksums')
 
     def export(self):
         for item in self.lib.items(self.query):
@@ -290,12 +286,13 @@ class CheckCommand(Subcommand):
         else:
             sys.stdout.write(len(msg)*' ' + '\r')
 
-    def executor_iterate(self, func, args):
-        with futures.ThreadPoolExecutor(max_workers=self.threads) as executor:
-            fs = [executor.submit(func, arg) for arg in args]
-            for f in futures.as_completed(fs):
-                f.result()
-
+    def execute_with_progress(self, func, args, msg=None):
+        total = len(args)
+        finished = 0
+        with futures.ThreadPoolExecutor(max_workers=self.threads) as e:
+            for _ in e.map(func, args):
+                finished += 1
+                self.log_progress(msg, finished, total)
 
 class IntegrityError(ReadError): pass
 
