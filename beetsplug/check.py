@@ -18,13 +18,15 @@ import logging
 from subprocess import Popen, PIPE
 from hashlib import sha256
 from optparse import OptionParser
+from threading import Thread
+from concurrent import futures
 
 import beets
 from beets import importer
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, decargs, colorize, input_yn
 from beets.library import ReadError
-
+from beets.util import cpu_count
 
 log = logging.getLogger('beets.check')
 
@@ -64,7 +66,9 @@ class CheckPlugin(BeetsPlugin):
             'write-update': True,
             'integrity': True,
             'convert-update': True,
+            'threads': cpu_count()
         })
+
         if self.config['import']:
             self.register_listener('item_imported', self.item_imported)
             self.import_stages = [self.copy_original_checksum]
@@ -79,7 +83,7 @@ class CheckPlugin(BeetsPlugin):
             self.register_listener('import_task_choice', self.verify_import_integrity)
 
     def commands(self):
-        return [CheckCommand()]
+        return [CheckCommand(threads=self.config['threads'].get(int))]
 
     def album_imported(self, lib, album):
         for item in album.items():
@@ -139,7 +143,9 @@ class CheckPlugin(BeetsPlugin):
 
 class CheckCommand(Subcommand):
 
-    def __init__(self):
+    def __init__(self, threads=1):
+        self.threads = threads
+
         parser = OptionParser(usage='%prog [options] [QUERY...]')
         parser.add_option(
             '-a', '--add',
@@ -192,7 +198,8 @@ class CheckCommand(Subcommand):
         items = [i for i in self.lib.items(self.query)
                             if not i.get('checksum', None)]
         total = len(items)
-        for index, item in enumerate(items):
+
+        def add((index, item)):
             log.debug('adding checksum for {0}'.format(item.path))
             set_checksum(item)
             try:
@@ -200,32 +207,37 @@ class CheckCommand(Subcommand):
             except IntegrityError as ex:
                 log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
                                             ex.reason, item.path))
-
             self.log_progress('Adding missing checksums', index+1, total)
+
+        self.executor_iterate(add, enumerate(items))
 
     def check(self):
         self.log('Looking up files with checksums...')
         items = [i for i in self.lib.items(self.query)
                             if i.get('checksum', None)]
         total = len(items)
-        failures = 0
-        integrity = 0
-        for index, item in enumerate(items):
+        status = {'failures': 0, 'integrity': 0}
+
+        def check_item((index, item)):
             try:
                 verify(item)
                 log.debug('{}: {}'.format(colorize('green', 'OK'), item.path))
             except ChecksumError:
                 log.error('{}: {}'.format(colorize('red', 'FAILED'), item.path))
-                failures += 1
+                status['failures'] += 1
             except IntegrityError as ex:
                 log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
                                             ex.reason, item.path))
-                integrity += 1
+                status['integrity'] += 1
             self.log_progress('Verifying checksums', index+1, total)
-        if integrity:
-            self.log('Found {} integrity error(s)'.format(integrity))
-        if failures:
-            self.log('Failed to verify checksum of {} file(s)'.format(failures))
+
+        self.executor_iterate(check_item, enumerate(items))
+
+        if status['integrity']:
+            self.log('Found {} integrity error(s)'.format(status['integrity']))
+        if status['failures']:
+            self.log('Failed to verify checksum of '
+                     '{} file(s)'.format(status['failures']))
             sys.exit(15)
         else:
             self.log('All checksums successfully verified')
@@ -235,12 +247,16 @@ class CheckCommand(Subcommand):
             if not input_yn('Do you want to overwrite all '
                             'checksums in your database? (y/n)', require=True):
                 return
+
         items = self.lib.items(self.query)
         total = len(items)
-        for index, item in enumerate(items):
+
+        def update_checksum((index, item)):
             log.debug('updating checksum: {}'.format(item.path))
             set_checksum(item)
             self.log_progress('Updating checksums', index+1, total)
+
+        self.executor_iterate(update_checksum, enumerate(items))
 
     def export(self):
         for item in self.lib.items(self.query):
@@ -273,6 +289,12 @@ class CheckCommand(Subcommand):
             sys.stdout.write('\n')
         else:
             sys.stdout.write(len(msg)*' ' + '\r')
+
+    def executor_iterate(self, func, args):
+        with futures.ThreadPoolExecutor(max_workers=self.threads) as executor:
+            fs = [executor.submit(func, arg) for arg in args]
+            for f in futures.as_completed(fs):
+                f.result()
 
 
 class IntegrityError(ReadError): pass

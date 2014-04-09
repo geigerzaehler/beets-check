@@ -198,6 +198,7 @@ check:
   write-update: yes
   convert-update: yes
   integrity: yes
+  threads: num_of_cpus
 ```
 
 These option control at which point *beets-check* will be used automatically by
@@ -214,6 +215,7 @@ other beets commands. You can disable each option by setting its value to `no`.
   converted with the `--keep-new` flag.
 * `integrity: no` Don’t use third party tools to check the integrity of
   a file.
+* `threads: 4` Use four threads to compute checksums.
 
 
 License
