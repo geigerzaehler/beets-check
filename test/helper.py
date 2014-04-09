@@ -11,7 +11,7 @@ from beets import autotag
 from beets import plugins
 from beets.autotag import AlbumInfo, TrackInfo, \
                           AlbumMatch, TrackMatch, \
-                          recommendation
+                          Recommendation
 from beets.autotag.hooks import Distance
 from beets.library import Item
 from beets.mediafile import MediaFile
@@ -179,13 +179,13 @@ class AutotagMock(object):
                                tracks=mapping.values())
         match = AlbumMatch(distance=dist, info=album_info, mapping=mapping,
                            extra_items=[], extra_tracks=[])
-        return artist, album, [match], recommendation.strong
+        return artist, album, [match], Recommendation.strong
 
     def tag_item(self, item, **kwargs):
         title = (item.title or '') + ' tag'
         track_info = TrackInfo(title=title, track_id=self.nextid())
         match = TrackMatch(distance=Distance(), info=track_info)
-        return [match], recommendation.strong
+        return [match], Recommendation.strong
 
 
 class MockChecker(object):
