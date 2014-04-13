@@ -148,7 +148,6 @@ class IntegrityCheckTest(TestHelper, TestCase):
                       'end of the file: {}'.format(item.path), logs)
 
     def test_flac_integrity(self):
-        print check.IntegrityChecker.all()
         item = self.lib.items('truncated.flac').get()
 
         with captureLog() as logs:
@@ -157,7 +156,6 @@ class IntegrityCheckTest(TestHelper, TestCase):
             'WARNING while decoding data: {}'.format(item.path), logs)
 
     def test_ogg_vorbis_integrity(self):
-        print check.IntegrityChecker.all()
         item = self.lib.items('truncated.ogg').get()
 
         with captureLog() as logs:

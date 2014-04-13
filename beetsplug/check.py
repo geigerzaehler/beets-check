@@ -18,7 +18,6 @@ import logging
 from subprocess import Popen, PIPE
 from hashlib import sha256
 from optparse import OptionParser
-from threading import Thread
 from concurrent import futures
 
 import beets
@@ -83,7 +82,7 @@ class CheckPlugin(BeetsPlugin):
             self.register_listener('import_task_choice', self.verify_import_integrity)
 
     def commands(self):
-        return [CheckCommand(threads=self.config['threads'].get(int))]
+        return [CheckCommand(self.config)]
 
     def album_imported(self, lib, album):
         for item in album.items():
@@ -125,11 +124,10 @@ class CheckPlugin(BeetsPlugin):
         if not task.items:
             return
         for item in task.items:
-            for checker in IntegrityChecker.allAvailable():
-                try:
-                    checker.run(item)
-                except IntegrityError as ex:
-                    integrity_errors.append(ex)
+            try:
+                verify_integrity(item)
+            except IntegrityError as ex:
+                integrity_errors.append(ex)
 
         if integrity_errors:
             log.warn('Warning: failed to verify integrity')
@@ -143,8 +141,9 @@ class CheckPlugin(BeetsPlugin):
 
 class CheckCommand(Subcommand):
 
-    def __init__(self, threads=1):
-        self.threads = threads
+    def __init__(self, config):
+        self.threads = config['threads'].get(int)
+        self.check_integrity = config['integrity'].get(bool)
 
         parser = OptionParser(usage='%prog [options] [QUERY...]')
         parser.add_option(
@@ -201,11 +200,12 @@ class CheckCommand(Subcommand):
         def add(item):
             log.debug('adding checksum for {0}'.format(item.path))
             set_checksum(item)
-            try:
-                verify_integrity(item)
-            except IntegrityError as ex:
-                log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
-                                            ex.reason, item.path))
+            if self.check_integrity:
+                try:
+                    verify_integrity(item)
+                except IntegrityError as ex:
+                    log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
+                                                ex.reason, item.path))
 
         self.execute_with_progress(add, items, msg='Adding missing checksums')
 
@@ -218,7 +218,9 @@ class CheckCommand(Subcommand):
 
         def check(item):
             try:
-                verify(item)
+                verify_checksum(item)
+                if self.check_integrity:
+                    verify_integrity(item)
                 log.debug('{}: {}'.format(colorize('green', 'OK'), item.path))
             except ChecksumError:
                 log.error('{}: {}'.format(colorize('red', 'FAILED'), item.path))
@@ -293,6 +295,7 @@ class CheckCommand(Subcommand):
             for _ in e.map(func, args):
                 finished += 1
                 self.log_progress(msg, finished, total)
+
 
 class IntegrityError(ReadError): pass
 
