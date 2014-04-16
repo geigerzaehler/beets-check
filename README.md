@@ -1,5 +1,7 @@
 beets-check
 ===========
+[![Build Status](https://travis-ci.org/geigerzaehler/beets-check.svg?branch=master)](https://travis-ci.org/geigerzaehler/beets-check)
+[![Coverage Status](https://coveralls.io/repos/geigerzaehler/beets-check/badge.png?branch=master)](https://coveralls.io/r/geigerzaehler/beets-check?branch=master)
 
 *The [beets][] plugin for paranoid obsessive-compulsive music geeks.*
 
