@@ -1,10 +1,9 @@
 import os
+import shutil
 from unittest import TestCase
 
 import beets.ui
 import beets.library
-from beets.library import Item
-from beets.mediafile import MediaFile
 
 from helper import TestHelper, captureLog, \
                    captureStdout, controlStdin, \
@@ -73,6 +72,20 @@ class CheckTest(TestHelper, TestCase):
             pass
 
         self.assertIn('FAILED: {}'.format(item.path), '\n'.join(logs))
+
+    def test_not_found_error(self):
+        item = self.lib.items().get()
+        item.path = '/doesnotexist'
+        item.store()
+
+        try:
+            with captureLog('beets.check') as logs:
+                beets.ui._raw_main(['check'])
+        except SystemExit:
+            pass
+
+        self.assertIn("ERROR [Errno 2] No such file or directory: '{}'"
+                      .format(item.path), '\n'.join(logs))
 
     def test_check_failed_exit_code(self):
         item = self.lib.items().get()
@@ -186,13 +199,12 @@ class ToolListTest(TestHelper, TestCase):
         self.assertIn('oggz-validate', stdout.getvalue())
 
     def test_found_mp3val(self):
-        open(os.path.join(self.temp_dir, 'mp3val'), 'w').close()
+        shutil.copy('/bin/echo', os.path.join(self.temp_dir, 'mp3val'))
         with captureStdout() as stdout:
             beets.ui._raw_main(['check', '--list-tools'])
         self.assertRegexpMatches(stdout.getvalue(), r'mp3val *found')
 
     def test_oggz_validate_not_found(self):
-        os.environ['PATH'] = self.temp_dir
         with captureStdout() as stdout:
             beets.ui._raw_main(['check', '--list-tools'])
         self.assertRegexpMatches(stdout.getvalue(), r'oggz-validate *not found')

@@ -12,10 +12,10 @@
 
 
 import re
+import os
 import sys
-import os.path
 import logging
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, check_call
 from hashlib import sha256
 from optparse import OptionParser
 from concurrent import futures
@@ -213,7 +213,6 @@ class CheckCommand(Subcommand):
         self.log('Looking up files with checksums...')
         items = [i for i in self.lib.items(self.query)
                             if i.get('checksum', None)]
-        total = len(items)
         status = {'failures': 0, 'integrity': 0}
 
         def check(item):
@@ -229,6 +228,9 @@ class CheckCommand(Subcommand):
                 log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
                                             ex.reason, item.path))
                 status['integrity'] += 1
+            except IOError as exc:
+                log.error('{} {}'.format(colorize('red', 'ERROR'), exc))
+                status['failures'] += 1
 
         self.execute_with_progress(check, items, msg='Verifying checksums')
 
@@ -248,7 +250,6 @@ class CheckCommand(Subcommand):
                 return
 
         items = self.lib.items(self.query)
-        total = len(items)
 
         def update(item):
             log.debug('updating checksum: {}'.format(item.path))
@@ -320,10 +321,13 @@ class IntegrityChecker(object):
         return cls._all_available
 
     def available(self):
-        for path in os.environ.get('PATH').split(os.pathsep):
-            if os.path.isfile(os.path.join(path, self.program)):
-                return True
-        return False
+        try:
+            with open(os.devnull, 'wb') as devnull:
+                check_call([self.program, '-v'], stdout=devnull, stderr=devnull)
+        except OSError:
+            return False
+        else:
+            return True
 
     def run(self, item):
         if item.format not in self.formats:

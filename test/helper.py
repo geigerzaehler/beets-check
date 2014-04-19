@@ -72,7 +72,6 @@ class TestHelper(object):
             shutil.rmtree(self.temp_dir)
 
     def setupBeets(self):
-        self.temp_dir = tempfile.mkdtemp()
         os.environ['BEETSDIR'] = self.temp_dir
 
         self.config = beets.config
