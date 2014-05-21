@@ -72,7 +72,8 @@ class CheckPlugin(BeetsPlugin):
             'write-update': True,
             'integrity': True,
             'convert-update': True,
-            'threads': cpu_count()
+            'threads': cpu_count(),
+            'backup': True
         })
 
         if self.config['import']:
@@ -155,6 +156,7 @@ class CheckCommand(Subcommand):
     def __init__(self, config):
         self.threads = config['threads'].get(int)
         self.check_integrity = config['integrity'].get(bool)
+        self.fix_backup = config['backup'].get(bool)
 
         parser = OptionParser(usage='%prog [options] [QUERY...]')
         parser.add_option(
@@ -188,6 +190,11 @@ class CheckCommand(Subcommand):
             help='fix integrity errors'
         )
         parser.add_option(
+            '-B', '--no-backup',
+            action='store_false', dest='fix_backup', default=True,
+            help='create backup of fixed files'
+        )
+        parser.add_option(
             '-l', '--list-tools',
             action='store_true', dest='list_tools', default=False,
             help='list available third-party used to check integrity'
@@ -216,7 +223,8 @@ class CheckCommand(Subcommand):
         elif options.export:
             self.export()
         elif options.fix:
-            self.fix(ask=not options.force)
+            self.fix(ask=not options.force,
+                     backup=options.fix_backup and self.fix_backup)
         elif options.list_tools:
             self.list_tools()
         else:
@@ -296,13 +304,12 @@ class CheckCommand(Subcommand):
             if item.get('checksum', None):
                 print('{} *{}'.format(item.checksum, item.path))
 
-    def fix(self, ask=True):
+    def fix(self, ask=True, backup=True):
         items = list(self.lib.items(self.query))
         failed = []
 
         def check(item):
             try:
-                # TODO remove redundant `item` and simplify
                 fixer = IntegrityChecker.fixer(item)
                 if fixer:
                     fixer.check(item)
@@ -320,21 +327,20 @@ class CheckCommand(Subcommand):
         for item in failed:
             log.info(item.path)
 
-        if ask and not input_yn('Do you want to fix these files? (y/n)',
-                                require=True):
+        if backup:
+            backup_msg = 'Backup files will be created.'
+        else:
+            backup_msg = 'No backup files will be created.'
+        if ask and not input_yn('Do you want to fix these files? {} (y/n)'
+                                .format(backup_msg), require=True):
             return
 
         def fix(item):
-            try:
-                # TODO remove redundant `item` and simplify
-                fixer = IntegrityChecker.fixer(item)
-                if fixer:
-                    fixer.fix(item)
-                    log.debug('{}: {}'.format(colorize('green', 'FIXED'),
-                                              item.path))
-            # TODO Handle failures when fixing, can remove IOError
-            except IOError as exc:
-                log.error('{} {}'.format(colorize('red', 'ERROR'), exc))
+            fixer = IntegrityChecker.fixer(item)
+            if fixer:
+                fixer.fix(item, backup)
+                log.debug('{}: {}'.format(colorize('green', 'FIXED'),
+                                          item.path))
 
         self.execute_with_progress(fix, failed, msg='Fixing files')
 
@@ -450,18 +456,12 @@ class MP3Val(IntegrityChecker):
             if match:
                 raise IntegrityError(path, match.group(1))
 
-    def fix(self, item):
+    def fix(self, item, backup=True):
         process = Popen([self.program, '-f', item.path],
                         stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         stdout, stderr = process.communicate()
-
-        # TODO raise and handle proper exception
-        if 'Cannot open input file' in stdout:
-            raise Exception
-        for line in stdout.split('\n'):
-            match = re.match(r'^ERROR: ".*": ([^:]*)$.', line)
-            if match:
-                raise Exception
+        if not backup:
+            os.remove(item.path + '.bak')
 
 
 class FlacTest(IntegrityChecker):

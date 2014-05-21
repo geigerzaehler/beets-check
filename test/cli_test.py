@@ -4,6 +4,7 @@ from unittest import TestCase
 
 import beets.ui
 import beets.library
+from beets.library import Item
 
 from helper import TestHelper, captureLog, \
     captureStdout, controlStdin, MockChecker
@@ -225,6 +226,7 @@ class FixIntegrityTest(TestHelper, TestCase):
         with controlStdin(u'y'), captureLog() as logs:
             beets.ui._raw_main(['check', '--fix'])
         self.assertIn(item.path, '\n'.join(logs))
+        self.assertIn('FIXED: {}'.format(item.path), '\n'.join(logs))
 
         with captureLog() as logs:
             beets.ui._raw_main(['check', '-i'])
@@ -263,17 +265,35 @@ class FixIntegrityTest(TestHelper, TestCase):
             beets.ui._raw_main(['check', '--fix'])
         check.verify_checksum(item)
 
-    def test_fix_error(self):
-        self.skipTest("not implemented yet")
-
-    def test_fix_non_existent(self):
-        self.skipTest("not implemented yet")
-
     def test_keep_backup(self):
-        self.skipTest("not implemented yet")
+        item = self.addIntegrityFailFixture()
+        old_checksum = item['checksum']
 
-    def test_dont_keep_backup(self):
-        self.skipTest("not implemented yet")
+        with controlStdin(u'y'), captureStdout() as stdout:
+            beets.ui._raw_main(['check', '--fix'])
+        self.assertIn('Backup files will be created', stdout.getvalue())
+
+        backup = Item(path=item.path + '.bak', checksum=old_checksum)
+        self.assertTrue(os.path.isfile(backup.path))
+        check.verify_checksum(backup)
+
+    def test_dont_keep_backup_flag(self):
+        item = self.addIntegrityFailFixture()
+
+        with controlStdin(u'y'), captureStdout() as stdout:
+            beets.ui._raw_main(['check', '--fix', '--no-backup'])
+        self.assertIn('No backup files will be created', stdout.getvalue())
+
+        backup_path = item.path + '.bak'
+        self.assertFalse(os.path.isfile(backup_path))
+
+    def test_dont_keep_backup_config(self):
+        item = self.addIntegrityFailFixture()
+        self.config['check']['backup'] = False
+
+        beets.ui._raw_main(['check', '--fix', '--force'])
+        backup_path = item.path + '.bak'
+        self.assertFalse(os.path.isfile(backup_path))
 
 
 class ToolListTest(TestHelper, TestCase):

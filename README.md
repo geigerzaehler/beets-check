@@ -205,7 +205,7 @@ a subdirectory of that path.
   fixes. This can be disabled with the `--force` flag. For every fixed file the
   command preserves a backup of the original file with the `.bak` extension
   added to it. Backups can be disabled with the `--no-backup` flag or the
-  `no-backup` configuration.
+  `backup` configuration.
 
 - **`-l, --list-tools`** Outputs a list of third party programs that
   *beets-check* uses to verify file integrity and shows whether they are
