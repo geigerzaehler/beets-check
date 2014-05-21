@@ -150,6 +150,10 @@ class CheckCommand(Subcommand):
 
         parser = OptionParser(usage='%prog [options] [QUERY...]')
         parser.add_option(
+            '-i', '--integrity',
+            action='store_false', dest='checksums', default=True,
+            help='only run integrity checks')
+        parser.add_option(
             '-a', '--add',
             action='store_true', dest='add', default=False,
             help='add checksum for all files that do not already have one')
@@ -193,7 +197,7 @@ class CheckCommand(Subcommand):
         elif options.list_tools:
             self.list_tools()
         else:
-            self.check()
+            self.check(checksums=options.checksums)
 
     def add(self):
         self.log('Looking for files without checksums...')
@@ -212,16 +216,16 @@ class CheckCommand(Subcommand):
 
         self.execute_with_progress(add, items, msg='Adding missing checksums')
 
-    def check(self):
+    def check(self, checksums=True):
         self.log('Looking up files with checksums...')
-        items = [i for i in self.lib.items(self.query)
-                            if i.get('checksum', None)]
+        items = list(self.lib.items(self.query))
         status = {'failures': 0, 'integrity': 0}
 
         def check(item):
             try:
-                verify_checksum(item)
-                if self.check_integrity:
+                if checksums and item.get('checksum', None):
+                    verify_checksum(item)
+                if self.check_integrity or not checksums:
                     verify_integrity(item)
                 log.debug('{}: {}'.format(colorize('green', 'OK'), item.path))
             except ChecksumError:

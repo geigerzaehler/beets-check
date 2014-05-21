@@ -106,6 +106,17 @@ class CheckTest(TestHelper, TestCase):
 
         self.assertNotIn('WARNING file is corrupt', '\n'.join(logs))
 
+    def test_check_only_integrity(self):
+        MockChecker.install()
+        self.addIntegrityFailFixture(checksum=False)
+        self.addCorruptedFixture()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '-i'])
+
+        self.assertIn('WARNING file is corrupt', '\n'.join(logs))
+        self.assertNotIn('FAILED', '\n'.join(logs))
+
     def test_force_all_update(self):
         self.setupFixtureLibrary()
         item = self.lib.items().get()

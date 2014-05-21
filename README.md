@@ -145,30 +145,39 @@ beet check [--quiet] [--add | [--update [--force]] | --export] [QUERY...]
 beet check --list-tools
 ```
 
-The `QUERY` argument will restrict all operations to files matching the
-query.  Remember, if a query contains a slash beets will [interpret it
-as a path][path query] and match all files that are contained in a
-subdirectory of that path.
+The plugin has subcommands for checking files, running integrity checks,
+adding, updating and exporting checksums and listing third-party tools. All but
+the last accepty a `QUERY` paramter that will restrict the operation to files
+matching the query.  Remember, if a query contains a slash beets will
+[interpret it as a path][path query] and match all files that are contained in
+a subdirectory of that path.
 
-Without any of the `-a`, `-u`, `-e`, and `-l` flags, the command will verify
-all items that are matched by the query. If the standard output is a terminal
-it shows a progress statement like in the example above. If the checksum
-verification of a file failed the command prints `FAILED: /path/to/file` to the
-error output. And if one of the third-party tools detects an error it will
-print `WARNING error description: /path/to/file` to stderr . If at least one
-file has an invalid checksum the program will exit with status code `15`.
+- **`beet check [-q] [QUERY...]`** By default the plugin will verify all known
+  checksums and also run integrity tests for all files. Integrity tests can
+  be disabled with the `integrity` configuration option.
 
-- **`-a, --add [QUERY...]`** Look for files in the database that don’t have a
+  If the standard output is a terminal it shows a progress statement like in
+  the example above. If the checksum verification of a file failed the command
+  prints `FAILED: /path/to/file` to the error output. And if one of the
+  third-party tools detects an error it will print `WARNING error description:
+  /path/to/file` to stderr . If at least one file has an invalid checksum the
+  program will exit with status code `15`.
+
+- **`-i, --integrity`** Only run third-party tools to check integrity and don
+  not verify checksum. The output is the same is described in the default
+  command.
+
+- **`-a, --add`** Look for files in the database that don’t have a
   checksum, compute it from the file and add it to the database. This will also
   print warnings for failed integrity checks.
 
-- **`-u, --update [QUERY...]`** Calculate checksums for all files matching the
+- **`-u, --update`** Calculate checksums for all files matching the
   query and write the them to the database. If no query is given this will
   overwrite all checksums already in the database. Since that is almost
   certainly not what you want, beets will ask you for confirmation in that
   case unless the `--force` flag is set.
 
-- **`-e, --export [QUERY...]`** Outputs a list of filenames with corresponding
+- **`-e, --export`** Outputs a list of filenames with corresponding
   checksums in the format used by the `sha256sum` command. You can then use
   that command to check your files externally. For example
   `beet check -e | sha256sum -c`.
@@ -177,6 +186,8 @@ file has an invalid checksum the program will exit with status code `15`.
   *beets-check* uses to verify file integrity and shows whether they are
   installed. The plugin comes with support for the
   [`oggz-validate`][oggz-validate], [`mp3val`][mp3val] and [`flac`][flac] commands.
+
+All commands accept a quiet flag.
 
 - **`-q, --quiet`** Suppresse the progress line but still print verification
   errors. This is the default if stdout is not connected to a terminal.

@@ -130,6 +130,19 @@ class TestHelper(object):
             check.set_checksum(item)
         return item
 
+    def addCorruptedFixture(self):
+        """Add item with a wrong checksum to the library and return it.
+        """
+        file = 'ok.ogg'
+        src = os.path.join(self.fixture_dir, file)
+        dst = os.path.join(self.libdir, file)
+        shutil.copy(src, dst)
+        item = Item.from_path(dst)
+        item.add(self.lib)
+        item['checksum'] = 'this is a wrong checksum'
+        item.store()
+        return item
+
     def disableIntegrityCheckers(self):
         check.IntegrityChecker._all = []
         check.IntegrityChecker._all_available = []
