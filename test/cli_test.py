@@ -6,8 +6,7 @@ import beets.ui
 import beets.library
 
 from helper import TestHelper, captureLog, \
-                   captureStdout, controlStdin, \
-                   MockChecker
+    captureStdout, controlStdin, MockChecker
 from beetsplug import check
 
 
@@ -16,12 +15,12 @@ class CheckTest(TestHelper, TestCase):
     def setUp(self):
         super(CheckTest, self).setUp()
         self.setupBeets()
-        self.setupFixtureLibrary()
 
     def tearDown(self):
         super(CheckTest, self).tearDown()
 
     def test_add_checksums(self):
+        self.setupFixtureLibrary()
         item = self.lib.items().get()
         del item['checksum']
         item.store()
@@ -32,6 +31,7 @@ class CheckTest(TestHelper, TestCase):
         self.assertIn('checksum', item)
 
     def test_dont_add_existing_checksums(self):
+        self.setupFixtureLibrary()
         item = self.lib.items().get()
         check.set_checksum(item)
         orig_checksum = item['checksum']
@@ -44,10 +44,7 @@ class CheckTest(TestHelper, TestCase):
 
     def test_add_shows_integrity_warning(self):
         MockChecker.install()
-
-        item = self.lib.items('truncated').get()
-        del item['checksum']
-        item.store()
+        item = self.addIntegrityFailFixture()
 
         with captureLog() as logs:
             beets.ui._raw_main(['check', '-a'])
@@ -56,12 +53,14 @@ class CheckTest(TestHelper, TestCase):
                       '\n'.join(logs))
 
     def test_check_success(self):
+        self.setupFixtureLibrary()
         with captureStdout() as stdout:
             beets.ui._raw_main(['check'])
         self.assertEqual('All checksums successfully verified',
                          stdout.getvalue().split('\n')[-2])
 
     def test_check_failed_error_log(self):
+        self.setupFixtureLibrary()
         item = self.lib.items().get()
         self.modifyFile(item.path)
 
@@ -74,6 +73,7 @@ class CheckTest(TestHelper, TestCase):
         self.assertIn('FAILED: {}'.format(item.path), '\n'.join(logs))
 
     def test_not_found_error(self):
+        self.setupFixtureLibrary()
         item = self.lib.items().get()
         item.path = '/doesnotexist'
         item.store()
@@ -88,6 +88,7 @@ class CheckTest(TestHelper, TestCase):
                       .format(item.path), '\n'.join(logs))
 
     def test_check_failed_exit_code(self):
+        self.setupFixtureLibrary()
         item = self.lib.items().get()
         self.modifyFile(item.path)
 
@@ -96,6 +97,7 @@ class CheckTest(TestHelper, TestCase):
         self.assertEqual(exit.exception.code, 15)
 
     def test_force_all_update(self):
+        self.setupFixtureLibrary()
         item = self.lib.items().get()
         orig_checksum = item['checksum']
         self.modifyFile(item.path)
@@ -107,31 +109,35 @@ class CheckTest(TestHelper, TestCase):
         check.verify(item)
 
     def test_update_all_confirmation(self):
+        self.setupFixtureLibrary()
         item = self.lib.items().get()
         orig_checksum = item['checksum']
         self.modifyFile(item.path)
 
-        with captureStdout() as stdout, controlStdin(u'y') as stdin:
+        with captureStdout() as stdout, controlStdin(u'y'):
             beets.ui._raw_main(['check', '--update'])
 
-        self.assertIn('Do you want to overwrite all checksums', stdout.getvalue())
+        self.assertIn('Do you want to overwrite all checksums',
+                      stdout.getvalue())
 
         item.load()
         self.assertNotEqual(item['checksum'], orig_checksum)
         check.verify(item)
 
     def test_update_all_confirmation_no(self):
+        self.setupFixtureLibrary()
         item = self.lib.items().get()
         orig_checksum = item['checksum']
         self.modifyFile(item.path)
 
-        with controlStdin(u'n') as stdin:
+        with controlStdin(u'n'):
             beets.ui._raw_main(['check', '--update'])
 
         item.load()
         self.assertEqual(item['checksum'], orig_checksum)
 
     def test_export(self):
+        self.setupFixtureLibrary()
         with captureStdout() as stdout:
             beets.ui._raw_main(['check', '--export'])
 
@@ -173,9 +179,8 @@ class IntegrityCheckTest(TestHelper, TestCase):
 
         with captureLog() as logs:
             beets.ui._raw_main(['check'])
-        self.assertIn(
-          'WARNING serialno 1038587646 missing *** eos: {}'.format(item.path),
-          logs)
+        self.assertIn('WARNING serialno 1038587646 missing *** eos: {}'
+                      .format(item.path), logs)
 
 
 class ToolListTest(TestHelper, TestCase):
@@ -207,4 +212,5 @@ class ToolListTest(TestHelper, TestCase):
     def test_oggz_validate_not_found(self):
         with captureStdout() as stdout:
             beets.ui._raw_main(['check', '--list-tools'])
-        self.assertRegexpMatches(stdout.getvalue(), r'oggz-validate *not found')
+        self.assertRegexpMatches(stdout.getvalue(),
+                                 r'oggz-validate *not found')

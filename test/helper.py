@@ -10,8 +10,7 @@ import beets
 from beets import autotag
 from beets import plugins
 from beets.autotag import AlbumInfo, TrackInfo, \
-                          AlbumMatch, TrackMatch, \
-                          Recommendation
+    AlbumMatch, TrackMatch, Recommendation
 from beets.autotag.hooks import Distance
 from beets.library import Item
 from beets.mediafile import MediaFile
@@ -19,6 +18,7 @@ from beets.mediafile import MediaFile
 from beetsplug import check
 
 logging.getLogger('beets').propagate = True
+
 
 class LogCapture(logging.Handler):
 
@@ -40,6 +40,7 @@ def captureLog(logger='beets'):
     finally:
         log.removeHandler(capture)
 
+
 @contextmanager
 def captureStdout():
     org = sys.stdout
@@ -48,6 +49,7 @@ def captureStdout():
         yield sys.stdout
     finally:
         sys.stdout = org
+
 
 @contextmanager
 def controlStdin(input=None):
@@ -58,6 +60,7 @@ def controlStdin(input=None):
         yield sys.stdin
     finally:
         sys.stdin = org
+
 
 class TestHelper(object):
 
@@ -88,11 +91,13 @@ class TestHelper(object):
         os.mkdir(self.libdir)
         self.config['directory'] = self.libdir
 
-        self.lib = beets.library.Library(self.config['library'].as_filename(),
-                      self.libdir)
+        self.lib = beets.library.Library(
+            self.config['library'].as_filename(),
+            self.libdir
+        )
 
         self.fixture_dir = os.path.join(os.path.dirname(__file__), 'fixtures')
-        
+
     def setupImportDir(self, files):
         self.import_dir = os.path.join(self.temp_dir, 'import')
         if not os.path.isdir(self.import_dir):
@@ -102,7 +107,6 @@ class TestHelper(object):
             shutil.copy(src, self.import_dir)
 
     def setupFixtureLibrary(self):
-        self.import_dir = os.path.join(self.temp_dir, 'import')
         for file in os.listdir(self.fixture_dir):
             src = os.path.join(self.fixture_dir, file)
             dst = os.path.join(self.libdir, file)
@@ -110,6 +114,19 @@ class TestHelper(object):
             item = Item.from_path(dst)
             item.add(self.lib)
             check.set_checksum(item)
+
+    def addIntegrityFailFixture(self):
+        """Add item with integrity errors to the library and return it.
+
+        The `MockChecker` will raise an integrity error when run on this item.
+        """
+        file = 'truncated.ogg'
+        src = os.path.join(self.fixture_dir, file)
+        dst = os.path.join(self.libdir, file)
+        shutil.copy(src, dst)
+        item = Item.from_path(dst)
+        item.add(self.lib)
+        return item
 
     def disableIntegrityCheckers(self):
         check.IntegrityChecker._all = []
@@ -163,7 +180,7 @@ class AutotagMock(object):
 
     def tag_album(self, items, **kwargs):
         artist = (items[0].artist or '') + ' tag'
-        album  = (items[0].album or '') + ' tag'
+        album = (items[0].album or '') + ' tag'
         mapping = {}
         dist = Distance()
         dist.tracks = {}
