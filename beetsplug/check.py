@@ -112,7 +112,10 @@ class CheckPlugin(BeetsPlugin):
         for item in task.imported_items():
             checksum = None
             for replaced in task.replaced_items[item]:
-                checksum = replaced['checksum']
+                try:
+                    checksum = replaced['checksum']
+                except KeyError:
+                    continue
                 if checksum:
                     break
             if checksum:
