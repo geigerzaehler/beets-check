@@ -44,7 +44,7 @@ class CheckTest(TestHelper, TestCase):
 
     def test_add_shows_integrity_warning(self):
         MockChecker.install()
-        item = self.addIntegrityFailFixture()
+        item = self.addIntegrityFailFixture(checksum=False)
 
         with captureLog() as logs:
             beets.ui._raw_main(['check', '-a'])
@@ -95,6 +95,16 @@ class CheckTest(TestHelper, TestCase):
         with self.assertRaises(SystemExit) as exit:
             beets.ui._raw_main(['check'])
         self.assertEqual(exit.exception.code, 15)
+
+    def test_check_without_integrity_config(self):
+        self.config['check']['integrity'] = False
+        MockChecker.install()
+        self.addIntegrityFailFixture()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check'])
+
+        self.assertNotIn('WARNING file is corrupt', '\n'.join(logs))
 
     def test_force_all_update(self):
         self.setupFixtureLibrary()

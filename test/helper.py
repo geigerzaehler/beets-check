@@ -115,7 +115,7 @@ class TestHelper(object):
             item.add(self.lib)
             check.set_checksum(item)
 
-    def addIntegrityFailFixture(self):
+    def addIntegrityFailFixture(self, checksum=True):
         """Add item with integrity errors to the library and return it.
 
         The `MockChecker` will raise an integrity error when run on this item.
@@ -126,6 +126,8 @@ class TestHelper(object):
         shutil.copy(src, dst)
         item = Item.from_path(dst)
         item.add(self.lib)
+        if checksum:
+            check.set_checksum(item)
         return item
 
     def disableIntegrityCheckers(self):
