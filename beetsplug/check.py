@@ -217,7 +217,6 @@ class CheckCommand(Subcommand):
         self.execute_with_progress(add, items, msg='Adding missing checksums')
 
     def check(self, checksums=True):
-        self.log('Looking up files with checksums...')
         items = list(self.lib.items(self.query))
         status = {'failures': 0, 'integrity': 0}
 
@@ -239,7 +238,11 @@ class CheckCommand(Subcommand):
                 log.error('{} {}'.format(colorize('red', 'ERROR'), exc))
                 status['failures'] += 1
 
-        self.execute_with_progress(check, items, msg='Verifying checksums')
+        if checksums:
+            msg = 'Verifying checksums'
+        else:
+            msg = 'Verifying integrity'
+        self.execute_with_progress(check, items, msg)
 
         if status['integrity']:
             self.log('Found {} integrity error(s)'.format(status['integrity']))
