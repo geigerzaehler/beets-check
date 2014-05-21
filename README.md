@@ -160,7 +160,7 @@ a subdirectory of that path.
   the example above. If the checksum verification of a file failed the command
   prints `FAILED: /path/to/file` to the error output. And if one of the
   third-party tools detects an error it will print `WARNING error description:
-  /path/to/file` to stderr . If at least one file has an invalid checksum the
+  /path/to/file` to *stderr*. If at least one file has an invalid checksum the
   program will exit with status code `15`.
 
 - **`-i, --integrity`** Only run third-party tools to check integrity and don
