@@ -278,11 +278,13 @@ class CheckCommand(Subcommand):
 
         if status['integrity']:
             self.log('Found {} integrity error(s)'.format(status['integrity']))
+        elif not checksums:
+            self.log('Integrity successfully verified')
         if status['failures']:
             self.log('Failed to verify checksum of '
                      '{} file(s)'.format(status['failures']))
             sys.exit(15)
-        else:
+        elif checksums:
             self.log('All checksums successfully verified')
 
     def update(self):
