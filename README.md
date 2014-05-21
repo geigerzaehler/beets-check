@@ -61,8 +61,8 @@ $ beet check -u 'album:Sgt. Pepper'
 Updating checksums:  2/13 [15%]
 ```
 
-Oftentimes it is possible to fix integrity errors in MP3 files. Ith the
-*mp3val* program is installed *beet-check* can do this for you.
+Oftentimes it is possible to fix integrity errors in MP3 files. Since `v0.9.2`
+*beets-check* can do this for you, but you will need the *mp3val* program.
 ```
 $ beet check -x 'album:Abbey Road'
 Verifying integrity: 17/17 [100%]
@@ -200,12 +200,12 @@ a subdirectory of that path.
   that command to check your files externally. For example
   `beet check -e | sha256sum -c`.
 
-- **`-x, --fix [--force | -f] [--no-backup | -B]`** Fix MP3 files with
-  integrity errors. Since this changes files it will ask for you to confirm the
-  fixes. This can be disabled with the `--force` flag. For every fixed file the
-  command preserves a backup of the original file with the `.bak` extension
-  added to it. Backups can be disabled with the `--no-backup` flag or the
-  `backup` configuration.
+- **`-x, --fix [--force | -f] [--no-backup | -B]`** Since `v0.9.2`. Fix MP3
+  files with integrity errors. Since this changes files it will ask for you to
+  confirm the fixes. This can be disabled with the `--force` flag. For every
+  fixed file the command preserves a backup of the original file with the `.bak`
+  extension added to it. Backups can be disabled with the `--no-backup` flag or
+  the `backup` configuration.
 
 - **`-l, --list-tools`** Outputs a list of third party programs that
   *beets-check* uses to verify file integrity and shows whether they are
