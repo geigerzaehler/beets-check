@@ -29,9 +29,11 @@ from beets.util import cpu_count
 
 log = logging.getLogger('beets.check')
 
+
 def set_checksum(item):
     item['checksum'] = compute_checksum(item)
     item.store()
+
 
 def compute_checksum(item):
     hash = sha256()
@@ -39,20 +41,25 @@ def compute_checksum(item):
         hash.update(file.read())
     return hash.hexdigest()
 
+
 def verify(item):
     verify_checksum(item)
     verify_integrity(item)
 
+
 def verify_checksum(item):
     if item['checksum'] != compute_checksum(item):
-        raise ChecksumError(item.path, 'checksum did not match value in library.')
+        raise ChecksumError(item.path,
+                            'checksum did not match value in library.')
+
 
 def verify_integrity(item):
     for checker in IntegrityChecker.allAvailable():
         checker.run(item)
 
 
-class ChecksumError(ReadError): pass
+class ChecksumError(ReadError):
+    pass
 
 
 class CheckPlugin(BeetsPlugin):
@@ -79,7 +86,8 @@ class CheckPlugin(BeetsPlugin):
         if self.config['convert-update']:
             self.register_listener('after_convert', self.after_convert)
         if self.config['integrity']:
-            self.register_listener('import_task_choice', self.verify_import_integrity)
+            self.register_listener('import_task_choice',
+                                   self.verify_import_integrity)
 
     def commands(self):
         return [CheckCommand(self.config)]
@@ -152,39 +160,48 @@ class CheckCommand(Subcommand):
         parser.add_option(
             '-i', '--integrity',
             action='store_false', dest='checksums', default=True,
-            help='only run integrity checks')
+            help='only run integrity checks'
+        )
         parser.add_option(
             '-a', '--add',
             action='store_true', dest='add', default=False,
-            help='add checksum for all files that do not already have one')
+            help='add checksum for all files that do not already have one'
+        )
         parser.add_option(
             '-u', '--update',
             action='store_true', dest='update', default=False,
-            help='compute new checksums and add the to the database')
+            help='compute new checksums and add the to the database'
+        )
         parser.add_option(
             '-f', '--force',
             action='store_true', dest='force', default=False,
-            help='force updating the whole library or fixing all files')
+            help='force updating the whole library or fixing all files'
+        )
         parser.add_option(
             '-e', '--export',
             action='store_true', dest='export', default=False,
-            help='print paths and corresponding checksum')
+            help='print paths and corresponding checksum'
+        )
         parser.add_option(
             '-x', '--fix',
             action='store_true', dest='fix', default=False,
-            help='fix integrity errors')
+            help='fix integrity errors'
+        )
         parser.add_option(
             '-l', '--list-tools',
             action='store_true', dest='list_tools', default=False,
-            help='list available third-party used to check integrity')
+            help='list available third-party used to check integrity'
+        )
         parser.add_option(
             '-q', '--quiet',
             action='store_true', dest='quiet', default=False,
-            help='only show errors')
+            help='only show errors'
+        )
         super(CheckCommand, self).__init__(
-                parser=parser,
-                name='check',
-                help='compute and verify checksums')
+            parser=parser,
+            name='check',
+            help='compute and verify checksums'
+        )
 
     def func(self, lib, options, arguments):
         self.quiet = options.quiet
@@ -208,7 +225,7 @@ class CheckCommand(Subcommand):
     def add(self):
         self.log('Looking for files without checksums...')
         items = [i for i in self.lib.items(self.query)
-                            if not i.get('checksum', None)]
+                 if not i.get('checksum', None)]
 
         def add(item):
             log.debug('adding checksum for {0}'.format(item.path))
@@ -234,7 +251,8 @@ class CheckCommand(Subcommand):
                     verify_integrity(item)
                 log.debug('{}: {}'.format(colorize('green', 'OK'), item.path))
             except ChecksumError:
-                log.error('{}: {}'.format(colorize('red', 'FAILED'), item.path))
+                log.error('{}: {}'.format(colorize('red', 'FAILED'),
+                                          item.path))
                 status['failures'] += 1
             except IntegrityError as ex:
                 log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
@@ -288,7 +306,8 @@ class CheckCommand(Subcommand):
                 fixer = IntegrityChecker.fixer(item)
                 if fixer:
                     fixer.check(item)
-                    log.debug('{}: {}'.format(colorize('green', 'OK'), item.path))
+                    log.debug('{}: {}'.format(colorize('green', 'OK'),
+                                              item.path))
             except IntegrityError:
                 failed.append(item)
 
@@ -311,7 +330,8 @@ class CheckCommand(Subcommand):
                 fixer = IntegrityChecker.fixer(item)
                 if fixer:
                     fixer.fix(item)
-                    log.debug('{}: {}'.format(colorize('green', 'FIXED'), item.path))
+                    log.debug('{}: {}'.format(colorize('green', 'FIXED'),
+                                              item.path))
             # TODO Handle failures when fixing, can remove IOError
             except IOError as exc:
                 log.error('{} {}'.format(colorize('red', 'ERROR'), exc))
@@ -320,7 +340,7 @@ class CheckCommand(Subcommand):
 
     def list_tools(self):
         checkers = [(checker.program, checker.available())
-                     for checker in IntegrityChecker.all()]
+                    for checker in IntegrityChecker.all()]
         prog_length = max(map(lambda c: len(c[0]), checkers)) + 3
         for program, available in checkers:
             msg = program + (prog_length-len(program))*u' '
@@ -354,7 +374,8 @@ class CheckCommand(Subcommand):
                 self.log_progress(msg, finished, total)
 
 
-class IntegrityError(ReadError): pass
+class IntegrityError(ReadError):
+    pass
 
 
 class IntegrityChecker(object):
@@ -379,7 +400,8 @@ class IntegrityChecker(object):
     def available(self):
         try:
             with open(os.devnull, 'wb') as devnull:
-                check_call([self.program, '-v'], stdout=devnull, stderr=devnull)
+                check_call([self.program, '-v'],
+                           stdout=devnull, stderr=devnull)
         except OSError:
             return False
         else:
@@ -420,7 +442,7 @@ class MP3Val(IntegrityChecker):
     def can_fix(self, item):
         return item.format in self.formats
 
-    log_matcher = re.compile( r'^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$')
+    log_matcher = re.compile(r'^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$')
 
     def parse(self, stdout, stderr, returncode, path):
         for line in stdout.split('\n'):
@@ -441,13 +463,14 @@ class MP3Val(IntegrityChecker):
             if match:
                 raise Exception
 
+
 class FlacTest(IntegrityChecker):
 
     program = 'flac'
     arguments = ['--test', '--silent']
     formats = ['FLAC']
 
-    error_matcher = re.compile( r'^.*: ERROR,? (.*)$')
+    error_matcher = re.compile(r'^.*: ERROR,? (.*)$')
 
     def parse(self, stdout, stderr, returncode, path):
         if returncode == 0:
@@ -456,6 +479,7 @@ class FlacTest(IntegrityChecker):
             match = self.error_matcher.match(line)
             if match:
                 raise IntegrityError(path, match.group(1))
+
 
 class OggzValidate(IntegrityChecker):
 
