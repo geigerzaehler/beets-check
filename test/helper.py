@@ -107,12 +107,8 @@ class TestHelper(object):
             shutil.copy(src, self.import_dir)
 
     def setupFixtureLibrary(self):
-        for file in os.listdir(self.fixture_dir):
-            src = os.path.join(self.fixture_dir, file)
-            dst = os.path.join(self.libdir, file)
-            shutil.copy(src, dst)
-            item = Item.from_path(dst)
-            item.add(self.lib)
+        for basename in os.listdir(self.fixture_dir):
+            item = self.addItemFixture(basename)
             check.set_checksum(item)
 
     def addIntegrityFailFixture(self, checksum=True):
@@ -120,12 +116,7 @@ class TestHelper(object):
 
         The `MockChecker` will raise an integrity error when run on this item.
         """
-        file = 'truncated.ogg'
-        src = os.path.join(self.fixture_dir, file)
-        dst = os.path.join(self.libdir, file)
-        shutil.copy(src, dst)
-        item = Item.from_path(dst)
-        item.add(self.lib)
+        item = self.addItemFixture('truncated.mp3')
         if checksum:
             check.set_checksum(item)
         return item
@@ -133,14 +124,17 @@ class TestHelper(object):
     def addCorruptedFixture(self):
         """Add item with a wrong checksum to the library and return it.
         """
-        file = 'ok.ogg'
-        src = os.path.join(self.fixture_dir, file)
-        dst = os.path.join(self.libdir, file)
+        item = self.addItemFixture('ok.ogg')
+        item['checksum'] = 'this is a wrong checksum'
+        item.store()
+        return item
+
+    def addItemFixture(self, basename='ok.ogg'):
+        src = os.path.join(self.fixture_dir, basename)
+        dst = os.path.join(self.libdir, basename)
         shutil.copy(src, dst)
         item = Item.from_path(dst)
         item.add(self.lib)
-        item['checksum'] = 'this is a wrong checksum'
-        item.store()
         return item
 
     def disableIntegrityCheckers(self):

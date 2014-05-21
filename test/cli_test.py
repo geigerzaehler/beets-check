@@ -204,6 +204,78 @@ class IntegrityCheckTest(TestHelper, TestCase):
                       .format(item.path), logs)
 
 
+class FixIntegrityTest(TestHelper, TestCase):
+
+    def setUp(self):
+        super(FixIntegrityTest, self).setUp()
+        self.setupBeets()
+        self.enableIntegrityCheckers()
+
+    def tearDown(self):
+        super(FixIntegrityTest, self).tearDown()
+
+    def test_fix(self):
+        item = self.addIntegrityFailFixture()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '-i'])
+        self.assertIn('WARNING It seems that file is truncated',
+                      '\n'.join(logs))
+
+        with controlStdin(u'y'), captureLog() as logs:
+            beets.ui._raw_main(['check', '--fix'])
+        self.assertIn(item.path, '\n'.join(logs))
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '-i'])
+        self.assertNotIn('WARNING It seems that file is truncated',
+                         '\n'.join(logs))
+
+        # File should have changed
+        self.assertRaises(check.ChecksumError, check.verify_checksum, item)
+
+    def test_fix_without_confirmation(self):
+        item = self.addIntegrityFailFixture()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '-i'])
+        self.assertIn('WARNING It seems that file is truncated',
+                      '\n'.join(logs))
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '--fix', '--force'])
+        self.assertIn(item.path, '\n'.join(logs))
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '-i'])
+        self.assertNotIn('WARNING It seems that file is truncated',
+                         '\n'.join(logs))
+
+    def test_nothing_to_fix(self):
+        self.addItemFixture('ok.ogg')
+        with captureStdout() as stdout:
+            beets.ui._raw_main(['check', '--fix', '--force'])
+        self.assertIn('No MP3 files to fix', stdout.getvalue())
+
+    def test_do_not_fix(self):
+        item = self.addIntegrityFailFixture()
+        with controlStdin(u'n'):
+            beets.ui._raw_main(['check', '--fix'])
+        check.verify_checksum(item)
+
+    def test_fix_error(self):
+        self.skipTest("not implemented yet")
+
+    def test_fix_non_existent(self):
+        self.skipTest("not implemented yet")
+
+    def test_keep_backup(self):
+        self.skipTest("not implemented yet")
+
+    def test_dont_keep_backup(self):
+        self.skipTest("not implemented yet")
+
+
 class ToolListTest(TestHelper, TestCase):
 
     def setUp(self):

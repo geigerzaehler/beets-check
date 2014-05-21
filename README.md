@@ -61,6 +61,18 @@ $ beet check -u 'album:Sgt. Pepper'
 Updating checksums:  2/13 [15%]
 ```
 
+Oftentimes it is possible to fix integrity errors in MP3 files. Ith the
+*mp3val* program is installed *beet-check* can do this for you.
+```
+$ beet check -x 'album:Abbey Road'
+Verifying integrity: 17/17 [100%]
+/music/Abbey Road/01 Come Together.mp3
+/music/Abbey Road/17 Her Majesty.mp3
+Do you want to fix these files? (y/n) y
+Fixing files: 1/2 [50%]
+```
+This will fix the files, keep a backup and update the checksums.
+
 ### Usage with `import`
 
 Since it would be tedious to run `check -a` every time you import new music
@@ -141,7 +153,13 @@ CLI Reference
 -------------
 
 ```
-beet check [--quiet] [--add | [--update [--force]] | --export] [QUERY...]
+beet check [--quiet]
+                 [ --integrity
+                 | --add
+                 | --update [--force]
+                 | --export
+                 | --fix [--force] [--no-backup]
+                 ] [QUERY...]
 beet check --list-tools
 ```
 
@@ -182,6 +200,13 @@ a subdirectory of that path.
   that command to check your files externally. For example
   `beet check -e | sha256sum -c`.
 
+- **`-x, --fix [--force | -f] [--no-backup | -B]`** Fix MP3 files with
+  integrity errors. Since this changes files it will ask for you to confirm the
+  fixes. This can be disabled with the `--force` flag. For every fixed file the
+  command preserves a backup of the original file with the `.bak` extension
+  added to it. Backups can be disabled with the `--no-backup` flag or the
+  `no-backup` configuration.
+
 - **`-l, --list-tools`** Outputs a list of third party programs that
   *beets-check* uses to verify file integrity and shows whether they are
   installed. The plugin comes with support for the
@@ -211,6 +236,7 @@ check:
   write-update: yes
   convert-update: yes
   integrity: yes
+  backup: yes
   threads: num_of_cpus
 ```
 
@@ -229,6 +255,7 @@ other beets commands. You can disable each option by setting its value to `no`.
 * `integrity: no` Don’t use third party tools to check the integrity of
   a file.
 * `threads: 4` Use four threads to compute checksums.
+* `backup: no` Don’t keep a backup of the original when fixing a file.
 
 
 License

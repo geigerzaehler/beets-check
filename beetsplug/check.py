@@ -15,7 +15,7 @@ import re
 import os
 import sys
 import logging
-from subprocess import Popen, PIPE, check_call
+from subprocess import Popen, PIPE, STDOUT, check_call
 from hashlib import sha256
 from optparse import OptionParser
 from concurrent import futures
@@ -164,11 +164,15 @@ class CheckCommand(Subcommand):
         parser.add_option(
             '-f', '--force',
             action='store_true', dest='force', default=False,
-            help='force updating the whole library')
+            help='force updating the whole library or fixing all files')
         parser.add_option(
             '-e', '--export',
             action='store_true', dest='export', default=False,
             help='print paths and corresponding checksum')
+        parser.add_option(
+            '-x', '--fix',
+            action='store_true', dest='fix', default=False,
+            help='fix integrity errors')
         parser.add_option(
             '-l', '--list-tools',
             action='store_true', dest='list_tools', default=False,
@@ -194,6 +198,8 @@ class CheckCommand(Subcommand):
             self.update()
         elif options.export:
             self.export()
+        elif options.fix:
+            self.fix(ask=not options.force)
         elif options.list_tools:
             self.list_tools()
         else:
@@ -272,6 +278,46 @@ class CheckCommand(Subcommand):
             if item.get('checksum', None):
                 print('{} *{}'.format(item.checksum, item.path))
 
+    def fix(self, ask=True):
+        items = list(self.lib.items(self.query))
+        failed = []
+
+        def check(item):
+            try:
+                # TODO remove redundant `item` and simplify
+                fixer = IntegrityChecker.fixer(item)
+                if fixer:
+                    fixer.check(item)
+                    log.debug('{}: {}'.format(colorize('green', 'OK'), item.path))
+            except IntegrityError:
+                failed.append(item)
+
+        self.execute_with_progress(check, items, msg='Verifying integrity')
+
+        if not failed:
+            self.log('No MP3 files to fix')
+            return
+
+        for item in failed:
+            log.info(item.path)
+
+        if ask and not input_yn('Do you want to fix these files? (y/n)',
+                                require=True):
+            return
+
+        def fix(item):
+            try:
+                # TODO remove redundant `item` and simplify
+                fixer = IntegrityChecker.fixer(item)
+                if fixer:
+                    fixer.fix(item)
+                    log.debug('{}: {}'.format(colorize('green', 'FIXED'), item.path))
+            # TODO Handle failures when fixing, can remove IOError
+            except IOError as exc:
+                log.error('{} {}'.format(colorize('red', 'ERROR'), exc))
+
+        self.execute_with_progress(fix, failed, msg='Fixing files')
+
     def list_tools(self):
         checkers = [(checker.program, checker.available())
                      for checker in IntegrityChecker.all()]
@@ -339,6 +385,21 @@ class IntegrityChecker(object):
         else:
             return True
 
+    @classmethod
+    def fixer(cls, item):
+        """Return an `IntegrityChecker` instance that can fix this item.
+        """
+        for checker in cls.allAvailable():
+            if checker.can_fix(item):
+                return checker
+
+    def can_fix(self, item):
+        return False
+
+    def check(self, item):
+        self.run(item)
+
+    # TODO Remove this alias
     def run(self, item):
         if item.format not in self.formats:
             return
@@ -356,6 +417,9 @@ class MP3Val(IntegrityChecker):
     program = 'mp3val'
     formats = ['MP3']
 
+    def can_fix(self, item):
+        return item.format in self.formats
+
     log_matcher = re.compile( r'^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$')
 
     def parse(self, stdout, stderr, returncode, path):
@@ -363,6 +427,19 @@ class MP3Val(IntegrityChecker):
             match = self.log_matcher.match(line)
             if match:
                 raise IntegrityError(path, match.group(1))
+
+    def fix(self, item):
+        process = Popen([self.program, '-f', item.path],
+                        stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+        stdout, stderr = process.communicate()
+
+        # TODO raise and handle proper exception
+        if 'Cannot open input file' in stdout:
+            raise Exception
+        for line in stdout.split('\n'):
+            match = re.match(r'^ERROR: ".*": ([^:]*)$.', line)
+            if match:
+                raise Exception
 
 class FlacTest(IntegrityChecker):
 
