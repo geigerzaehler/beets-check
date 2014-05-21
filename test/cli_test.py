@@ -215,7 +215,7 @@ class FixIntegrityTest(TestHelper, TestCase):
     def tearDown(self):
         super(FixIntegrityTest, self).tearDown()
 
-    def test_fix(self):
+    def test_fix_integrity(self):
         item = self.addIntegrityFailFixture()
 
         with captureLog() as logs:
@@ -233,9 +233,6 @@ class FixIntegrityTest(TestHelper, TestCase):
         self.assertNotIn('WARNING It seems that file is truncated',
                          '\n'.join(logs))
 
-        # File should have changed
-        self.assertRaises(check.ChecksumError, check.verify_checksum, item)
-
     def test_fix_without_confirmation(self):
         item = self.addIntegrityFailFixture()
 
@@ -252,6 +249,27 @@ class FixIntegrityTest(TestHelper, TestCase):
             beets.ui._raw_main(['check', '-i'])
         self.assertNotIn('WARNING It seems that file is truncated',
                          '\n'.join(logs))
+
+    def test_update_checksum(self):
+        item = self.addIntegrityFailFixture()
+        old_checksum = item['checksum']
+        beets.ui._raw_main(['check', '--fix', '--force'])
+
+        item.load()
+        check.verify_checksum(item)
+        self.assertNotEqual(old_checksum, item['checksum'])
+
+    def test_dont_fix_with_wrong_checksum(self):
+        item = self.addIntegrityFailFixture()
+        item['checksum'] = 'this is wrong'
+        item.store()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '--fix', '--force'])
+        self.assertIn('FAILED checksum', '\n'.join(logs))
+
+        item.load()
+        self.assertEqual(item['checksum'], 'this is wrong')
 
     def test_nothing_to_fix(self):
         self.addItemFixture('ok.ogg')

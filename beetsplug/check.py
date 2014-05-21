@@ -312,6 +312,8 @@ class CheckCommand(Subcommand):
 
         def check(item):
             try:
+                if 'checksum' in item:
+                    verify_checksum(item)
                 fixer = IntegrityChecker.fixer(item)
                 if fixer:
                     fixer.check(item)
@@ -319,6 +321,9 @@ class CheckCommand(Subcommand):
                                               item.path))
             except IntegrityError:
                 failed.append(item)
+            except ChecksumError:
+                log.error('{}: {}'.format(colorize('red', 'FAILED checksum'),
+                                          item.path))
 
         self.execute_with_progress(check, items, msg='Verifying integrity')
 
@@ -343,6 +348,7 @@ class CheckCommand(Subcommand):
                 fixer.fix(item, backup)
                 log.debug('{}: {}'.format(colorize('green', 'FIXED'),
                                           item.path))
+                set_checksum(item)
 
         self.execute_with_progress(fix, failed, msg='Fixing files')
 
