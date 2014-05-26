@@ -100,12 +100,12 @@ If you run `import` with the `--quiet` flag the importer will skip corrupted
 files automatically and log an error.
 
 
-### Usage with `write` and `modify`
+### Automatic Update
 
-The [`write`][write] and [`modify`][modify] commands change a file’s
-content and this invalidates its checksum. To relieve you from updating the
-checksum manually, the plugin will recalculate the checksums of all the files
-that were changed.
+The [`write`][write] and [`modify`][modify] commands as well as some plugins will
+change a file’s content and thus invalidate its checksum. To relieve you from
+updating the checksum manually, *beets-check* will recalculate the checksums of
+all the files that were changed.
 
 ```
 $ beet check -e 'title:A Day in the Life'
@@ -117,8 +117,8 @@ $ beet check -e 'title:A Day in the Life'
 d942...5a82 */music/life.mp3
 ```
 
-This is basically equivalent to running `beets check -u QUERY` after a
-`write` or `modify` command
+This is basically equivalent to running `beets check -u QUERY` after a modifying
+command.
 
 To make sure that a file hasn’t changed before beets changes it, the
 plugin will verify the checksum before the file is written.  If the
