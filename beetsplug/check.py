@@ -297,7 +297,10 @@ class CheckCommand(Subcommand):
 
         def update(item):
             log.debug('updating checksum: {}'.format(item.path))
-            set_checksum(item)
+            try:
+                set_checksum(item)
+            except IOError as exc:
+                log.error('{} {}'.format(colorize('red', 'ERROR'), exc))
 
         self.execute_with_progress(update, items, msg='Updating checksums')
 
@@ -324,6 +327,8 @@ class CheckCommand(Subcommand):
             except ChecksumError:
                 log.error('{}: {}'.format(colorize('red', 'FAILED checksum'),
                                           item.path))
+            except IOError as exc:
+                log.error('{} {}'.format(colorize('red', 'ERROR'), exc))
 
         self.execute_with_progress(check, items, msg='Verifying integrity')
 

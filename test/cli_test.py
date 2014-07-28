@@ -85,6 +85,7 @@ class CheckTest(TestHelper, TestCase):
         except SystemExit:
             pass
 
+        self.assertIn("OK:", '\n'.join(logs))
         self.assertIn("ERROR [Errno 2] No such file or directory: '{}'"
                       .format(item.path), '\n'.join(logs))
 
@@ -157,6 +158,16 @@ class CheckTest(TestHelper, TestCase):
 
         item.load()
         self.assertEqual(item['checksum'], orig_checksum)
+
+    def test_update_nonexistent(self):
+        item = Item(path='/doesnotexist')
+        self.lib.add(item)
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '--update', '--force'])
+
+        self.assertIn("ERROR [Errno 2] No such file or directory: '{}'"
+                      .format(item.path), '\n'.join(logs))
 
     def test_export(self):
         self.setupFixtureLibrary()
