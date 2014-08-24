@@ -9,12 +9,12 @@ beets-check
 and validates file checksums and uses third party tools to check the integrity
 of audio data.
 
-If you want to use this plugin, make sure your have version 1.3.4 of
+Tto use this plugin, make sure your have version 1.3.7 of
 beets installed.
 
 ```
-pip install --upgrade beets>=1.3.4
-pip install git+git://github.com/geigerzaehler/beets-check.git
+pip install --upgrade beets>=1.3.7
+pip install https://github.com/geigerzaehler/beets-check/archive/v0.9.2.zip
 ```
 
 If you want to use third-party tools to verify the integrity of your
@@ -39,7 +39,7 @@ database.  The command also prints a warning if one of the integrity
 tools has found an error.
 
 After some time (or maybe a system crash) you’ll probably want to go back to
-your library and verify that none of the files has changed. To do this run
+your library and verify that none of the files have changed. To do this run
 
 ```
 $ beet check
@@ -54,7 +54,7 @@ and `ERROR` lines are sent to stderr, so you will still see the
 progressbar.
 
 
-If you have changed one of the files on purpose, its checksum most certainly
+If you have changed one of your files on purpose, its checksum most certainly
 will have changed, too. So go ahead and update the database.
 ```
 $ beet check -u 'album:Sgt. Pepper'

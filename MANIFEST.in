@@ -1,4 +1,2 @@
 prune test
-include test/*.py
-
 include LICENSE README.md
