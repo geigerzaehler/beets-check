@@ -9,13 +9,16 @@ beets-check
 and validates file checksums and uses third party tools to check the integrity
 of audio data.
 
-Tto use this plugin, make sure your have version 1.3.7 of
+To use this plugin, make sure your have at least version 1.3.7 of
 beets installed.
 
 ```
 pip install --upgrade beets>=1.3.7
 pip install https://github.com/geigerzaehler/beets-check/archive/v0.9.2.zip
 ```
+
+Then add `check` to the list of plugins in your beet configuration.
+(Running `beet config --edit` might be the quickest way.)
 
 If you want to use third-party tools to verify the integrity of your
 audio files you have to manually install them on your system. Run `beet
