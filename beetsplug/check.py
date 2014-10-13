@@ -161,7 +161,7 @@ class CheckCommand(Subcommand):
         parser = OptionParser(usage='%prog [options] [QUERY...]')
         parser.add_option(
             '-i', '--integrity',
-            action='store_false', dest='checksums', default=True,
+            action='store_true', dest='only_integrity', default=False,
             help='only run integrity checks'
         )
         parser.add_option(
@@ -227,8 +227,10 @@ class CheckCommand(Subcommand):
                      backup=options.fix_backup and self.fix_backup)
         elif options.list_tools:
             self.list_tools()
+        elif options.only_integrity:
+            self.check(checksums=False, integrity=True)
         else:
-            self.check(checksums=options.checksums)
+            self.check(checksums=True)
 
     def add(self):
         self.log('Looking for files without checksums...')
@@ -247,7 +249,10 @@ class CheckCommand(Subcommand):
 
         self.execute_with_progress(add, items, msg='Adding missing checksums')
 
-    def check(self, checksums=True):
+    def check(self, checksums=True, integrity=None):
+        if integrity is None:
+            integrity = self.check_integrity
+
         items = list(self.lib.items(self.query))
         status = {'failures': 0, 'integrity': 0}
 
@@ -255,34 +260,37 @@ class CheckCommand(Subcommand):
             try:
                 if checksums and item.get('checksum', None):
                     verify_checksum(item)
-                if self.check_integrity or not checksums:
+                if integrity:
                     verify_integrity(item)
-                log.debug('{}: {}'.format(colorize('green', 'OK'), item.path))
+                log.debug(u'{}: {}'.format(colorize('green', 'OK'), item.path))
             except ChecksumError:
-                log.error('{}: {}'.format(colorize('red', 'FAILED'),
-                                          item.path))
+                log.error(u'{}: {}'.format(colorize('red', 'FAILED'),
+                                           item.path))
                 status['failures'] += 1
             except IntegrityError as ex:
-                log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
-                                            ex.reason, item.path))
+                log.warn(u'{} {}: {}'.format(colorize('yellow', 'WARNING'),
+                                             ex.reason, item.path))
                 status['integrity'] += 1
             except IOError as exc:
-                log.error('{} {}'.format(colorize('red', 'ERROR'), exc))
+                log.error(u'{} {}'.format(colorize('red', 'ERROR'), exc))
                 status['failures'] += 1
 
-        if checksums:
-            msg = 'Verifying checksums'
-        else:
-            msg = 'Verifying integrity'
+        if checksums and integrity:
+            msg = u'Verifying checksums and integrity'
+        elif checksums:
+            msg = u'Verifying checksums'
+        elif integrity:
+            msg = u'Verifying integrity'
         self.execute_with_progress(check, items, msg)
 
         if status['integrity']:
-            self.log('Found {} integrity error(s)'.format(status['integrity']))
+            self.log(u'Found {} integrity error(s)'
+                     .format(status['integrity']))
         elif not checksums:
-            self.log('Integrity successfully verified')
+            self.log(u'Integrity successfully verified')
         if status['failures']:
-            self.log('Failed to verify checksum of '
-                     '{} file(s)'.format(status['failures']))
+            self.log(u'Failed to verify checksum of {} file(s)'
+                     .format(status['failures']))
             sys.exit(15)
         elif checksums:
             self.log('All checksums successfully verified')
@@ -385,6 +393,10 @@ class CheckCommand(Subcommand):
             sys.stdout.write(len(msg)*' ' + '\r')
 
     def execute_with_progress(self, func, args, msg=None):
+        """Run `func` for each value in the iterator `args` in a thread pool.
+
+        When the function has finished it logs the progress and the `msg`.
+        """
         total = len(args)
         finished = 0
         with futures.ThreadPoolExecutor(max_workers=self.threads) as e:

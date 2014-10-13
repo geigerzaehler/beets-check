@@ -111,6 +111,7 @@ class CheckTest(TestHelper, TestCase):
     def test_check_only_integrity(self):
         MockChecker.install()
         self.addIntegrityFailFixture(checksum=False)
+        self.addIntegrityFailFixture(checksum='not a real checksum')
         self.addCorruptedFixture()
 
         with captureLog() as logs:
