@@ -1,19 +1,15 @@
 import os.path
-from unittest import TestCase, skip
+from unittest import TestCase
 
 import beets
 import beets.ui
 import beets.library
-from beets.library import Item, get_query
 from beets.mediafile import MediaFile
 from beets import plugins
 
 from helper import TestHelper, captureLog, \
-                   controlStdin, captureStdout, \
-                   MockChecker
+    controlStdin, captureStdout, MockChecker
 from beetsplug import check
-
-import logging
 
 
 class ImportTest(TestHelper, TestCase):
@@ -94,7 +90,8 @@ class ImportTest(TestHelper, TestCase):
             beets.ui._raw_main(['import', '-q', self.import_dir])
 
         self.assertIn('Warning: failed to verify integrity', logs)
-        self.assertIn('truncated.mp3: file is corrupt\nSkipping.', '\n'.join(logs))
+        self.assertIn('truncated.mp3: file is corrupt\nSkipping.',
+                      '\n'.join(logs))
         self.assertEqual(len(self.lib.items()), 0)
 
     def test_add_corrupt_files(self):
@@ -126,8 +123,9 @@ class WriteTest(TestHelper, TestCase):
 
         with captureLog() as logs:
             beets.ui._raw_main(['write', item.title])
-        self.assertRegexpMatches('\n'.join(logs),
-                r'error reading .*: checksum did not match value in library')
+        self.assertRegexpMatches(
+            '\n'.join(logs),
+            r'error reading .*: checksum did not match value in library')
 
     def test_abort_write_when_invalid_checksum(self):
         item = self.lib.items('ok').get()
