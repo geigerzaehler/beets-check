@@ -154,12 +154,11 @@ class CheckIntegrityTest(TestBase, TestCase):
         MockChecker.installNone()
         self.addIntegrityFailFixture()
 
-        with self.assertRaises(SystemExit) as exit:
-            with captureLog() as logs:
-                beets.ui._raw_main(['check', '-i'])
+        with self.assertRaises(beets.ui.UserError) as userError:
+            beets.ui._raw_main(['check', '-i'])
 
-        self.assertIn('No integrity checkers found.', '\n'.join(logs))
-        self.assertEqual(exit.exception.code, 2)
+        self.assertIn('No integrity checkers found.',
+                      userError.exception.args[0])
 
 
 class CheckUpdateTest(TestBase, TestCase):

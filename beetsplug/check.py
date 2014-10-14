@@ -23,7 +23,7 @@ from concurrent import futures
 import beets
 from beets import importer
 from beets.plugins import BeetsPlugin
-from beets.ui import Subcommand, decargs, colorize, input_yn
+from beets.ui import Subcommand, decargs, colorize, input_yn, UserError
 from beets.library import ReadError
 from beets.util import cpu_count, displayable_path
 
@@ -253,6 +253,14 @@ class CheckCommand(Subcommand):
     def check(self, checksums=True, integrity=None):
         if integrity is None:
             integrity = self.check_integrity
+
+        if integrity and not IntegrityChecker.allAvailable():
+            no_checkers_warning = u"No integrity checkers found. " \
+                                  "Run 'beet check --list -tools'"
+            if not checksums:
+                raise UserError(no_checkers_warning)
+            log.warn(no_checkers_warning)
+            integrity = False
 
         items = list(self.lib.items(self.query))
         status = {'failures': 0, 'integrity': 0}
