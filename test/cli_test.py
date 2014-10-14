@@ -160,6 +160,15 @@ class CheckIntegrityTest(TestBase, TestCase):
         self.assertIn('No integrity checkers found.',
                       userError.exception.args[0])
 
+    def test_print_integrity_checkers(self):
+        MockChecker.install()
+        self.addIntegrityFailFixture()
+
+        with captureStdout() as stdout:
+            beets.ui._raw_main(['check'])
+
+        self.assertIn('Using integrity checker mock', stdout.getvalue())
+
 
 class CheckUpdateTest(TestBase, TestCase):
     """beet check --update"""

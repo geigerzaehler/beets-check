@@ -244,9 +244,9 @@ class CheckCommand(Subcommand):
                 try:
                     verify_integrity(item)
                 except IntegrityError as ex:
-                    log.warn(u'{} {}: {}'.format(colorize('yellow', u'WARNING'),
-                                                 ex.reason,
-                                                 displayable_path(item.path)))
+                    log.warn(u'{} {}: {}'.format(
+                        colorize('yellow', u'WARNING'), ex.reason,
+                        displayable_path(item.path)))
 
         self.execute_with_progress(add, items, msg='Adding missing checksums')
 
@@ -261,6 +261,12 @@ class CheckCommand(Subcommand):
                 raise UserError(no_checkers_warning)
             log.warn(no_checkers_warning)
             integrity = False
+
+        if integrity:
+            progs = map(lambda c: c.program, IntegrityChecker.allAvailable())
+            plural = 's' if len(progs) > 1 else ''
+            self.log(u'Using integrity checker{} {}'
+                     .format(plural, ', '.join(progs)))
 
         items = list(self.lib.items(self.query))
         status = {'failures': 0, 'integrity': 0}
@@ -315,7 +321,8 @@ class CheckCommand(Subcommand):
         items = self.lib.items(self.query)
 
         def update(item):
-            log.debug(u'updating checksum: {}'.format(displayable_path(item.path)))
+            log.debug(u'updating checksum: {}'
+                      .format(displayable_path(item.path)))
             try:
                 set_checksum(item)
             except IOError as exc:
@@ -326,7 +333,8 @@ class CheckCommand(Subcommand):
     def export(self):
         for item in self.lib.items(self.query):
             if item.get('checksum', None):
-                print(u'{} *{}'.format(item.checksum, displayable_path(item.path)))
+                print(u'{} *{}'
+                      .format(item.checksum, displayable_path(item.path)))
 
     def fix(self, ask=True, backup=True):
         items = list(self.lib.items(self.query))
