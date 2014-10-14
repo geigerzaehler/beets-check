@@ -11,14 +11,18 @@ from helper import TestHelper, captureLog, \
 from beetsplug import check
 
 
-class CheckTest(TestHelper, TestCase):
+class TestBase(TestHelper, TestCase):
 
     def setUp(self):
-        super(CheckTest, self).setUp()
+        super(TestBase, self).setUp()
         self.setupBeets()
 
     def tearDown(self):
-        super(CheckTest, self).tearDown()
+        super(TestBase, self).tearDown()
+
+
+class CheckAddTest(TestBase, TestCase):
+    """beet check --add"""
 
     def test_add_checksums(self):
         self.setupFixtureLibrary()
@@ -53,6 +57,10 @@ class CheckTest(TestHelper, TestCase):
         self.assertIn('WARNING file is corrupt: {}'.format(item.path),
                       '\n'.join(logs))
 
+
+class CheckTest(TestBase, TestCase):
+    """beet check"""
+
     def test_check_success(self):
         self.setupFixtureLibrary()
         with captureStdout() as stdout:
@@ -73,7 +81,7 @@ class CheckTest(TestHelper, TestCase):
 
         self.assertIn('FAILED: {}'.format(item.path), '\n'.join(logs))
 
-    def test_not_found_error(self):
+    def test_not_found_error_log(self):
         self.setupFixtureLibrary()
         item = self.lib.items().get()
         item.path = '/doesnotexist'
@@ -98,6 +106,19 @@ class CheckTest(TestHelper, TestCase):
             beets.ui._raw_main(['check'])
         self.assertEqual(exit.exception.code, 15)
 
+
+class CheckIntegrityTest(TestBase, TestCase):
+    """beet check"""
+
+    def test_integrity_warning(self):
+        MockChecker.install()
+        self.addIntegrityFailFixture()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check'])
+
+        self.assertIn('WARNING file is corrupt', '\n'.join(logs))
+
     def test_check_without_integrity_config(self):
         self.config['check']['integrity'] = False
         MockChecker.install()
@@ -108,7 +129,7 @@ class CheckTest(TestHelper, TestCase):
 
         self.assertNotIn('WARNING file is corrupt', '\n'.join(logs))
 
-    def test_check_only_integrity(self):
+    def test_only_integrity(self):
         MockChecker.install()
         self.addIntegrityFailFixture(checksum=False)
         self.addIntegrityFailFixture(checksum='not a real checksum')
@@ -119,6 +140,30 @@ class CheckTest(TestHelper, TestCase):
 
         self.assertIn('WARNING file is corrupt', '\n'.join(logs))
         self.assertNotIn('FAILED', '\n'.join(logs))
+
+    def test_no_integrity_checkers_warning(self):
+        MockChecker.installNone()
+        self.addIntegrityFailFixture()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check'])
+
+        self.assertIn('No integrity checkers found.', '\n'.join(logs))
+
+    def test_only_integrity_without_checkers_error(self):
+        MockChecker.installNone()
+        self.addIntegrityFailFixture()
+
+        with self.assertRaises(SystemExit) as exit:
+            with captureLog() as logs:
+                beets.ui._raw_main(['check', '-i'])
+
+        self.assertIn('No integrity checkers found.', '\n'.join(logs))
+        self.assertEqual(exit.exception.code, 2)
+
+
+class CheckUpdateTest(TestBase, TestCase):
+    """beet check --update"""
 
     def test_force_all_update(self):
         self.setupFixtureLibrary()
@@ -169,6 +214,10 @@ class CheckTest(TestHelper, TestCase):
 
         self.assertIn("ERROR [Errno 2] No such file or directory: '{}'"
                       .format(item.path), '\n'.join(logs))
+
+
+class CheckExportTest(TestBase, TestCase):
+    """beet check --export"""
 
     def test_export(self):
         self.setupFixtureLibrary()

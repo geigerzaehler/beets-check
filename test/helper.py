@@ -73,6 +73,7 @@ class TestHelper(object):
         self.unloadPlugins()
         if hasattr(self, 'temp_dir'):
             shutil.rmtree(self.temp_dir)
+        MockChecker.restore()
 
     def setupBeets(self):
         os.environ['BEETSDIR'] = self.temp_dir
@@ -214,6 +215,8 @@ class AutotagMock(object):
 
 
 class MockChecker(object):
+    program = 'mock'
+
     @classmethod
     def install(cls):
         check.IntegrityChecker._all_available = [cls()]
@@ -222,6 +225,10 @@ class MockChecker(object):
     def restore(cls):
         if hasattr(check.IntegrityChecker, '_all_available'):
             delattr(check.IntegrityChecker, '_all_available')
+
+    @classmethod
+    def installNone(cls):
+        check.IntegrityChecker._all_available = []
 
     def run(self, item):
         if 'truncated' in item.path:
