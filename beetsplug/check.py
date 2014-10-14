@@ -25,7 +25,7 @@ from beets import importer
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, decargs, colorize, input_yn
 from beets.library import ReadError
-from beets.util import cpu_count
+from beets.util import cpu_count, displayable_path
 
 log = logging.getLogger('beets.check')
 
@@ -142,12 +142,12 @@ class CheckPlugin(BeetsPlugin):
                 integrity_errors.append(ex)
 
         if integrity_errors:
-            log.warn('Warning: failed to verify integrity')
+            log.warn(u'Warning: failed to verify integrity')
             for error in integrity_errors:
                 log.warn('  {}: {}'.format(item.path, error))
             if beets.config['import']['quiet'] \
-               or input_yn('Do you want to skip this album (Y/n)'):
-                log.info('Skipping.')
+               or input_yn(u'Do you want to skip this album (Y/n)'):
+                log.info(u'Skipping.')
                 task.choice_flag = importer.action.SKIP
 
 
@@ -162,52 +162,52 @@ class CheckCommand(Subcommand):
         parser.add_option(
             '-i', '--integrity',
             action='store_true', dest='only_integrity', default=False,
-            help='only run integrity checks'
+            help=u'only run integrity checks'
         )
         parser.add_option(
             '-a', '--add',
             action='store_true', dest='add', default=False,
-            help='add checksum for all files that do not already have one'
+            help=u'add checksum for all files that do not already have one'
         )
         parser.add_option(
             '-u', '--update',
             action='store_true', dest='update', default=False,
-            help='compute new checksums and add the to the database'
+            help=u'compute new checksums and add the to the database'
         )
         parser.add_option(
             '-f', '--force',
             action='store_true', dest='force', default=False,
-            help='force updating the whole library or fixing all files'
+            help=u'force updating the whole library or fixing all files'
         )
         parser.add_option(
             '-e', '--export',
             action='store_true', dest='export', default=False,
-            help='print paths and corresponding checksum'
+            help=u'print paths and corresponding checksum'
         )
         parser.add_option(
             '-x', '--fix',
             action='store_true', dest='fix', default=False,
-            help='fix integrity errors'
+            help=u'fix integrity errors'
         )
         parser.add_option(
             '-B', '--no-backup',
             action='store_false', dest='fix_backup', default=True,
-            help='create backup of fixed files'
+            help=u'create backup of fixed files'
         )
         parser.add_option(
             '-l', '--list-tools',
             action='store_true', dest='list_tools', default=False,
-            help='list available third-party used to check integrity'
+            help=u'list available third-party used to check integrity'
         )
         parser.add_option(
             '-q', '--quiet',
             action='store_true', dest='quiet', default=False,
-            help='only show errors'
+            help=u'only show errors'
         )
         super(CheckCommand, self).__init__(
             parser=parser,
             name='check',
-            help='compute and verify checksums'
+            help=u'compute and verify checksums'
         )
 
     def func(self, lib, options, arguments):
@@ -233,19 +233,20 @@ class CheckCommand(Subcommand):
             self.check(checksums=True)
 
     def add(self):
-        self.log('Looking for files without checksums...')
+        self.log(u'Looking for files without checksums...')
         items = [i for i in self.lib.items(self.query)
                  if not i.get('checksum', None)]
 
         def add(item):
-            log.debug('adding checksum for {0}'.format(item.path))
+            log.debug(u'adding checksum for {0}'.format(item.path))
             set_checksum(item)
             if self.check_integrity:
                 try:
                     verify_integrity(item)
                 except IntegrityError as ex:
-                    log.warn('{} {}: {}'.format(colorize('yellow', 'WARNING'),
-                                                ex.reason, item.path))
+                    log.warn(u'{} {}: {}'.format(colorize('yellow', u'WARNING'),
+                                                 ex.reason,
+                                                 displayable_path(item.path)))
 
         self.execute_with_progress(add, items, msg='Adding missing checksums')
 
@@ -262,17 +263,19 @@ class CheckCommand(Subcommand):
                     verify_checksum(item)
                 if integrity:
                     verify_integrity(item)
-                log.debug(u'{}: {}'.format(colorize('green', 'OK'), item.path))
+                log.debug(u'{}: {}'.format(colorize('green', u'OK'),
+                                           displayable_path(item.path)))
             except ChecksumError:
-                log.error(u'{}: {}'.format(colorize('red', 'FAILED'),
-                                           item.path))
+                log.error(u'{}: {}'.format(colorize('red', u'FAILED'),
+                                           displayable_path(item.path)))
                 status['failures'] += 1
             except IntegrityError as ex:
-                log.warn(u'{} {}: {}'.format(colorize('yellow', 'WARNING'),
-                                             ex.reason, item.path))
+                log.warn(u'{} {}: {}'.format(colorize('yellow', u'WARNING'),
+                                             ex.reason,
+                                             displayable_path(item.path)))
                 status['integrity'] += 1
             except IOError as exc:
-                log.error(u'{} {}'.format(colorize('red', 'ERROR'), exc))
+                log.error(u'{} {}'.format(colorize('red', u'ERROR'), exc))
                 status['failures'] += 1
 
         if checksums and integrity:
@@ -293,29 +296,29 @@ class CheckCommand(Subcommand):
                      .format(status['failures']))
             sys.exit(15)
         elif checksums:
-            self.log('All checksums successfully verified')
+            self.log(u'All checksums successfully verified')
 
     def update(self):
         if not self.query and not self.force_update:
-            if not input_yn('Do you want to overwrite all '
+            if not input_yn(u'Do you want to overwrite all '
                             'checksums in your database? (y/n)', require=True):
                 return
 
         items = self.lib.items(self.query)
 
         def update(item):
-            log.debug('updating checksum: {}'.format(item.path))
+            log.debug(u'updating checksum: {}'.format(displayable_path(item.path)))
             try:
                 set_checksum(item)
             except IOError as exc:
-                log.error('{} {}'.format(colorize('red', 'ERROR'), exc))
+                log.error(u'{} {}'.format(colorize('red', u'ERROR'), exc))
 
-        self.execute_with_progress(update, items, msg='Updating checksums')
+        self.execute_with_progress(update, items, msg=u'Updating checksums')
 
     def export(self):
         for item in self.lib.items(self.query):
             if item.get('checksum', None):
-                print('{} *{}'.format(item.checksum, item.path))
+                print(u'{} *{}'.format(item.checksum, displayable_path(item.path)))
 
     def fix(self, ask=True, backup=True):
         items = list(self.lib.items(self.query))
@@ -328,30 +331,30 @@ class CheckCommand(Subcommand):
                 fixer = IntegrityChecker.fixer(item)
                 if fixer:
                     fixer.check(item)
-                    log.debug('{}: {}'.format(colorize('green', 'OK'),
-                                              item.path))
+                    log.debug(u'{}: {}'.format(colorize('green', u'OK'),
+                                               displayable_path(item.path)))
             except IntegrityError:
                 failed.append(item)
             except ChecksumError:
-                log.error('{}: {}'.format(colorize('red', 'FAILED checksum'),
-                                          item.path))
+                log.error(u'{}: {}'.format(colorize('red', u'FAILED checksum'),
+                                           item.path))
             except IOError as exc:
-                log.error('{} {}'.format(colorize('red', 'ERROR'), exc))
+                log.error(u'{} {}'.format(colorize('red', u'ERROR'), exc))
 
-        self.execute_with_progress(check, items, msg='Verifying integrity')
+        self.execute_with_progress(check, items, msg=u'Verifying integrity')
 
         if not failed:
-            self.log('No MP3 files to fix')
+            self.log(u'No MP3 files to fix')
             return
 
         for item in failed:
             log.info(item.path)
 
         if backup:
-            backup_msg = 'Backup files will be created.'
+            backup_msg = u'Backup files will be created.'
         else:
-            backup_msg = 'No backup files will be created.'
-        if ask and not input_yn('Do you want to fix these files? {} (y/n)'
+            backup_msg = u'No backup files will be created.'
+        if ask and not input_yn(u'Do you want to fix these files? {} (y/n)'
                                 .format(backup_msg), require=True):
             return
 
@@ -359,11 +362,11 @@ class CheckCommand(Subcommand):
             fixer = IntegrityChecker.fixer(item)
             if fixer:
                 fixer.fix(item, backup)
-                log.debug('{}: {}'.format(colorize('green', 'FIXED'),
-                                          item.path))
+                log.debug(u'{}: {}'.format(colorize('green', u'FIXED'),
+                                           item.path))
                 set_checksum(item)
 
-        self.execute_with_progress(fix, failed, msg='Fixing files')
+        self.execute_with_progress(fix, failed, msg=u'Fixing files')
 
     def list_tools(self):
         checkers = [(checker.program, checker.available())
@@ -372,9 +375,9 @@ class CheckCommand(Subcommand):
         for program, available in checkers:
             msg = program + (prog_length-len(program))*u' '
             if available:
-                msg += colorize('green', 'found')
+                msg += colorize('green', u'found')
             else:
-                msg += colorize('red', 'not found')
+                msg += colorize('red', u'not found')
             print(msg)
 
     def log(self, msg):
@@ -384,7 +387,7 @@ class CheckCommand(Subcommand):
     def log_progress(self, msg, index, total):
         if self.quiet or not sys.stdout.isatty():
             return
-        msg = '{}: {}/{} [{}%]'.format(msg, index, total, index*100/total)
+        msg = u'{}: {}/{} [{}%]'.format(msg, index, total, index*100/total)
         sys.stdout.write(msg + '\r')
         sys.stdout.flush()
         if index == total:
