@@ -21,7 +21,7 @@ from optparse import OptionParser
 from concurrent import futures
 
 import beets
-from beets import importer
+from beets import importer, config
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, decargs, colorize, input_yn, UserError
 from beets.library import ReadError
@@ -42,11 +42,6 @@ def compute_checksum(item):
     return hash.hexdigest()
 
 
-def verify(item):
-    verify_checksum(item)
-    verify_integrity(item)
-
-
 def verify_checksum(item):
     if item['checksum'] != compute_checksum(item):
         raise ChecksumError(item.path,
@@ -55,7 +50,7 @@ def verify_checksum(item):
 
 def verify_integrity(item):
     for checker in IntegrityChecker.allAvailable():
-        checker.run(item)
+        checker.check(item)
 
 
 class ChecksumError(ReadError):
@@ -73,7 +68,24 @@ class CheckPlugin(BeetsPlugin):
             'integrity': True,
             'convert-update': True,
             'threads': cpu_count(),
-            'backup': True
+            'external': {
+                'mp3val': {
+                    'cmdline': 'mp3val {0}',
+                    'formats': 'MP3',
+                    'error' : '^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$',
+                    'fix': 'mp3val -nb -f {0}'
+                },
+                'flac': {
+                    'cmdline': 'flac --test --silent {0}',
+                    'formats': 'FLAC',
+                    'error': '^.*: ERROR,? (.*)$'
+                },
+                'oggz-validate': {
+                    'cmdline': 'oggz-validate {0}',
+                    'formats': 'OGG'
+                }
+
+            }
         })
 
         if self.config['import']:
@@ -156,13 +168,12 @@ class CheckCommand(Subcommand):
     def __init__(self, config):
         self.threads = config['threads'].get(int)
         self.check_integrity = config['integrity'].get(bool)
-        self.fix_backup = config['backup'].get(bool)
 
         parser = OptionParser(usage='%prog [options] [QUERY...]')
         parser.add_option(
-            '-i', '--integrity',
-            action='store_true', dest='only_integrity', default=False,
-            help=u'only run integrity checks'
+            '-e', '--external',
+            action='store_true', dest='external', default=False,
+            help=u'run external tools'
         )
         parser.add_option(
             '-a', '--add',
@@ -180,19 +191,14 @@ class CheckCommand(Subcommand):
             help=u'force updating the whole library or fixing all files'
         )
         parser.add_option(
-            '-e', '--export',
+            '--export',
             action='store_true', dest='export', default=False,
             help=u'print paths and corresponding checksum'
         )
         parser.add_option(
             '-x', '--fix',
             action='store_true', dest='fix', default=False,
-            help=u'fix integrity errors'
-        )
-        parser.add_option(
-            '-B', '--no-backup',
-            action='store_false', dest='fix_backup', default=True,
-            help=u'create backup of fixed files'
+            help=u'fix errors with external tools'
         )
         parser.add_option(
             '-l', '--list-tools',
@@ -223,14 +229,11 @@ class CheckCommand(Subcommand):
         elif options.export:
             self.export()
         elif options.fix:
-            self.fix(ask=not options.force,
-                     backup=options.fix_backup and self.fix_backup)
+            self.fix(ask=not options.force)
         elif options.list_tools:
             self.list_tools()
-        elif options.only_integrity:
-            self.check(checksums=False, integrity=True)
         else:
-            self.check(checksums=True)
+            self.check(options.external)
 
     def add(self):
         self.log(u'Looking for files without checksums...')
@@ -250,67 +253,62 @@ class CheckCommand(Subcommand):
 
         self.execute_with_progress(add, items, msg='Adding missing checksums')
 
-    def check(self, checksums=True, integrity=None):
-        if integrity is None:
-            integrity = self.check_integrity
-
-        if integrity and not IntegrityChecker.allAvailable():
+    def check(self, external):
+        if external and not IntegrityChecker.allAvailable():
             no_checkers_warning = u"No integrity checkers found. " \
                                   "Run 'beet check --list -tools'"
-            if not checksums:
-                raise UserError(no_checkers_warning)
-            log.warn(no_checkers_warning)
-            integrity = False
+            raise UserError(no_checkers_warning)
 
-        if integrity:
-            progs = map(lambda c: c.program, IntegrityChecker.allAvailable())
+        if external:
+            progs = map(lambda c: c.name, IntegrityChecker.allAvailable())
             plural = 's' if len(progs) > 1 else ''
             self.log(u'Using integrity checker{} {}'
                      .format(plural, ', '.join(progs)))
 
         items = list(self.lib.items(self.query))
-        status = {'failures': 0, 'integrity': 0}
+        failures = [0]
 
         def check(item):
             try:
-                if checksums and item.get('checksum', None):
-                    verify_checksum(item)
-                if integrity:
+                if external:
                     verify_integrity(item)
+                elif item.get('checksum', None):
+                    verify_checksum(item)
                 log.debug(u'{}: {}'.format(colorize('green', u'OK'),
                                            displayable_path(item.path)))
             except ChecksumError:
                 log.error(u'{}: {}'.format(colorize('red', u'FAILED'),
                                            displayable_path(item.path)))
-                status['failures'] += 1
+                failures[0] += 1
             except IntegrityError as ex:
                 log.warn(u'{} {}: {}'.format(colorize('yellow', u'WARNING'),
                                              ex.reason,
                                              displayable_path(item.path)))
-                status['integrity'] += 1
+                failures[0] += 1
             except IOError as exc:
                 log.error(u'{} {}'.format(colorize('red', u'ERROR'), exc))
-                status['failures'] += 1
+                failures[0] += 1
 
-        if checksums and integrity:
-            msg = u'Verifying checksums and integrity'
-        elif checksums:
+        if external:
+            msg = u'Running external tests'
+        else:
             msg = u'Verifying checksums'
-        elif integrity:
-            msg = u'Verifying integrity'
         self.execute_with_progress(check, items, msg)
 
-        if status['integrity']:
-            self.log(u'Found {} integrity error(s)'
-                     .format(status['integrity']))
-        elif not checksums:
-            self.log(u'Integrity successfully verified')
-        if status['failures']:
-            self.log(u'Failed to verify checksum of {} file(s)'
-                     .format(status['failures']))
-            sys.exit(15)
-        elif checksums:
-            self.log(u'All checksums successfully verified')
+        failures = failures[0]
+        if external:
+            if failures:
+                self.log(u'Found {} integrity error(s)'.format(failures))
+                sys.exit(15)
+            else:
+                self.log(u'Integrity successfully verified')
+        else:
+            if failures:
+                self.log(u'Failed to verify checksum of {} file(s)'
+                         .format(failures))
+                sys.exit(15)
+            else:
+                self.log(u'All checksums successfully verified')
 
     def update(self):
         if not self.query and not self.force_update:
@@ -336,7 +334,7 @@ class CheckCommand(Subcommand):
                 print(u'{} *{}'
                       .format(item.checksum, displayable_path(item.path)))
 
-    def fix(self, ask=True, backup=True):
+    def fix(self, ask=True):
         items = list(self.lib.items(self.query))
         failed = []
 
@@ -366,18 +364,14 @@ class CheckCommand(Subcommand):
         for item in failed:
             log.info(item.path)
 
-        if backup:
-            backup_msg = u'Backup files will be created.'
-        else:
-            backup_msg = u'No backup files will be created.'
-        if ask and not input_yn(u'Do you want to fix these files? {} (y/n)'
-                                .format(backup_msg), require=True):
+        if ask and not input_yn(u'Do you want to fix these files? {} (y/n)',
+                                require=True):
             return
 
         def fix(item):
             fixer = IntegrityChecker.fixer(item)
             if fixer:
-                fixer.fix(item, backup)
+                fixer.fix(item)
                 log.debug(u'{}: {}'.format(colorize('green', u'FIXED'),
                                            item.path))
                 set_checksum(item)
@@ -385,11 +379,11 @@ class CheckCommand(Subcommand):
         self.execute_with_progress(fix, failed, msg=u'Fixing files')
 
     def list_tools(self):
-        checkers = [(checker.program, checker.available())
+        checkers = [(checker.name, checker.available())
                     for checker in IntegrityChecker.all()]
         prog_length = max(map(lambda c: len(c[0]), checkers)) + 3
-        for program, available in checkers:
-            msg = program + (prog_length-len(program))*u' '
+        for name, available in checkers:
+            msg = name + (prog_length-len(name))*u' '
             if available:
                 msg += colorize('green', u'found')
             else:
@@ -430,15 +424,14 @@ class IntegrityError(ReadError):
 
 class IntegrityChecker(object):
 
-    program = None
-    arguments = []
-    formats = []
-    """As returned by ``item.formats``."""
-
     @classmethod
     def all(cls):
-        if not hasattr(cls, '_all'):
-            cls._all = [c() for c in cls.__subclasses__()]
+        if hasattr(cls, '_all'):
+            return cls._all
+
+        cls._all = []
+        for name, tool in config['check']['external'].items():
+            cls._all.append(cls(name, tool))
         return cls._all
 
     @classmethod
@@ -447,10 +440,29 @@ class IntegrityChecker(object):
             cls._all_available = [c for c in cls.all() if c.available()]
         return cls._all_available
 
+    def __init__(self, name, config):
+        self.name = name
+        self.cmdline = config['cmdline'].get(str)
+
+        if config['formats'].exists():
+            self.formats = config['formats'].as_str_seq()
+        else:
+            self.formats = True
+
+        if config['error'].exists():
+            self.error_match = re.compile(config['error'].get(str), re.M)
+        else:
+            self.error_match = False
+
+        if config['fix'].exists():
+            self.fixcmd = config['fix'].get(str)
+        else:
+            self.fixcmd = False
+
     def available(self):
         try:
             with open(os.devnull, 'wb') as devnull:
-                check_call([self.program, '-v'],
+                check_call([self.cmdline.split(' ')[0], '-v'],
                            stdout=devnull, stderr=devnull)
         except OSError:
             return False
@@ -465,73 +477,30 @@ class IntegrityChecker(object):
             if checker.can_fix(item):
                 return checker
 
-    def can_fix(self, item):
-        return False
+    def can_check(self, item):
+        return self.formats is True or item.format in self.formats
 
     def check(self, item):
-        self.run(item)
-
-    # TODO Remove this alias
-    def run(self, item):
-        if item.format not in self.formats:
+        if not self.can_check(item):
             return
-        process = Popen([self.program] + self.arguments + [item.path],
-                        stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        self.parse(stdout, stderr, process.returncode, item.path)
-
-    def parse(self, stdout, stderr, returncode, path):
-        raise NotImplementedError
-
-
-class MP3Val(IntegrityChecker):
-
-    program = 'mp3val'
-    formats = ['MP3']
+        # TODO close stdin
+        process = Popen(self.cmdline.format(item.path), shell=True,
+                        stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+        stdout = process.communicate()[0]
+        if self.error_match:
+            match = self.error_match.search(stdout)
+        else:
+            match = False
+        if match:
+            raise IntegrityError(item.path, match.group(1))
+        elif process.returncode:
+            raise IntegrityError(item.path, "non-zero exit code for {}"
+                                 .format(self.name))
 
     def can_fix(self, item):
-        return item.format in self.formats
+        return self.can_check(item) and self.fixcmd
 
-    log_matcher = re.compile(r'^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$')
-
-    def parse(self, stdout, stderr, returncode, path):
-        for line in stdout.split('\n'):
-            match = self.log_matcher.match(line)
-            if match:
-                raise IntegrityError(path, match.group(1))
-
-    def fix(self, item, backup=True):
-        process = Popen([self.program, '-f', item.path],
+    def fix(self, item):
+        process = Popen(self.fixcmd.format(item.path), shell=True,
                         stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         stdout, stderr = process.communicate()
-        if not backup:
-            os.remove(item.path + '.bak')
-
-
-class FlacTest(IntegrityChecker):
-
-    program = 'flac'
-    arguments = ['--test', '--silent']
-    formats = ['FLAC']
-
-    error_matcher = re.compile(r'^.*: ERROR,? (.*)$')
-
-    def parse(self, stdout, stderr, returncode, path):
-        if returncode == 0:
-            return
-        for line in stderr.split('\n'):
-            match = self.error_matcher.match(line)
-            if match:
-                raise IntegrityError(path, match.group(1))
-
-
-class OggzValidate(IntegrityChecker):
-
-    program = 'oggz-validate'
-    formats = ['OGG']
-
-    def parse(self, stdout, stderr, returncode, path):
-        if returncode == 0:
-            return
-        error = stderr.split('\n')[1].replace(':', '')
-        raise IntegrityError(path, error)

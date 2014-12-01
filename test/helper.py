@@ -215,7 +215,7 @@ class AutotagMock(object):
 
 
 class MockChecker(object):
-    program = 'mock'
+    name = 'mock'
 
     @classmethod
     def install(cls):
@@ -230,6 +230,6 @@ class MockChecker(object):
     def installNone(cls):
         check.IntegrityChecker._all_available = []
 
-    def run(self, item):
+    def check(self, item):
         if 'truncated' in item.path:
             raise check.IntegrityError(item.path, 'file is corrupt')

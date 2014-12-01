@@ -5,10 +5,11 @@ from unittest import TestCase
 import beets.ui
 import beets.library
 from beets.library import Item
+from beets.ui import UserError
 
 from helper import TestHelper, captureLog, \
     captureStdout, controlStdin, MockChecker
-from beetsplug import check
+from beetsplug.check import verify_checksum, set_checksum
 
 
 class TestBase(TestHelper, TestCase):
@@ -38,7 +39,7 @@ class CheckAddTest(TestBase, TestCase):
     def test_dont_add_existing_checksums(self):
         self.setupFixtureLibrary()
         item = self.lib.items().get()
-        check.set_checksum(item)
+        set_checksum(item)
         orig_checksum = item['checksum']
 
         self.modifyFile(item.path)
@@ -108,64 +109,43 @@ class CheckTest(TestBase, TestCase):
 
 
 class CheckIntegrityTest(TestBase, TestCase):
-    """beet check"""
+    # TODO beet check --external=mp3val,other
+    """beet check --external"""
 
     def test_integrity_warning(self):
         MockChecker.install()
         self.addIntegrityFailFixture()
 
-        with captureLog() as logs:
-            beets.ui._raw_main(['check'])
+        with self.assertRaises(SystemExit):
+            with captureLog() as logs:
+                beets.ui._raw_main(['check', '--external'])
 
         self.assertIn('WARNING file is corrupt', '\n'.join(logs))
 
-    def test_check_without_integrity_config(self):
-        self.config['check']['integrity'] = False
+    def test_check_failed_exit_code(self):
         MockChecker.install()
         self.addIntegrityFailFixture()
 
-        with captureLog() as logs:
-            beets.ui._raw_main(['check'])
-
-        self.assertNotIn('WARNING file is corrupt', '\n'.join(logs))
-
-    def test_only_integrity(self):
-        MockChecker.install()
-        self.addIntegrityFailFixture(checksum=False)
-        self.addIntegrityFailFixture(checksum='not a real checksum')
-        self.addCorruptedFixture()
-
-        with captureLog() as logs:
-            beets.ui._raw_main(['check', '-i'])
-
-        self.assertIn('WARNING file is corrupt', '\n'.join(logs))
-        self.assertNotIn('FAILED', '\n'.join(logs))
+        with self.assertRaises(SystemExit) as exit:
+            beets.ui._raw_main(['check', '--external'])
+        self.assertEqual(exit.exception.code, 15)
 
     def test_no_integrity_checkers_warning(self):
         MockChecker.installNone()
         self.addIntegrityFailFixture()
 
-        with captureLog() as logs:
-            beets.ui._raw_main(['check'])
+        with self.assertRaises(UserError) as error:
+            beets.ui._raw_main(['check', '--external'])
 
-        self.assertIn('No integrity checkers found.', '\n'.join(logs))
-
-    def test_only_integrity_without_checkers_error(self):
-        MockChecker.installNone()
-        self.addIntegrityFailFixture()
-
-        with self.assertRaises(beets.ui.UserError) as userError:
-            beets.ui._raw_main(['check', '-i'])
-
-        self.assertIn('No integrity checkers found.',
-                      userError.exception.args[0])
+        self.assertIn('No integrity checkers found.', error.exception.args[0])
 
     def test_print_integrity_checkers(self):
         MockChecker.install()
         self.addIntegrityFailFixture()
 
-        with captureStdout() as stdout:
-            beets.ui._raw_main(['check'])
+        with self.assertRaises(SystemExit):
+            with captureStdout() as stdout:
+                beets.ui._raw_main(['check', '--external'])
 
         self.assertIn('Using integrity checker mock', stdout.getvalue())
 
@@ -183,7 +163,7 @@ class CheckUpdateTest(TestBase, TestCase):
 
         item.load()
         self.assertNotEqual(item['checksum'], orig_checksum)
-        check.verify(item)
+        verify_checksum(item)
 
     def test_update_all_confirmation(self):
         self.setupFixtureLibrary()
@@ -199,7 +179,7 @@ class CheckUpdateTest(TestBase, TestCase):
 
         item.load()
         self.assertNotEqual(item['checksum'], orig_checksum)
-        check.verify(item)
+        verify_checksum(item)
 
     def test_update_all_confirmation_no(self):
         self.setupFixtureLibrary()
@@ -238,6 +218,9 @@ class CheckExportTest(TestBase, TestCase):
 
 
 class IntegrityCheckTest(TestHelper, TestCase):
+    """beet check --external
+
+    For integrated third-party tools"""
 
     def setUp(self):
         super(IntegrityCheckTest, self).setUp()
@@ -251,8 +234,9 @@ class IntegrityCheckTest(TestHelper, TestCase):
     def test_mp3_integrity(self):
         item = self.lib.items(['path::truncated.mp3']).get()
 
-        with captureLog() as logs:
-            beets.ui._raw_main(['check'])
+        with self.assertRaises(SystemExit):
+            with captureLog() as logs:
+                beets.ui._raw_main(['check', '--external'])
         self.assertIn('WARNING It seems that file is '
                       'truncated or there is garbage at the '
                       'end of the file: {}'.format(item.path), logs)
@@ -260,21 +244,24 @@ class IntegrityCheckTest(TestHelper, TestCase):
     def test_flac_integrity(self):
         item = self.lib.items('truncated.flac').get()
 
-        with captureLog() as logs:
-            beets.ui._raw_main(['check'])
+        with self.assertRaises(SystemExit):
+            with captureLog() as logs:
+                beets.ui._raw_main(['check', '--external'])
         self.assertIn(
             'WARNING while decoding data: {}'.format(item.path), logs)
 
     def test_ogg_vorbis_integrity(self):
         item = self.lib.items('truncated.ogg').get()
 
-        with captureLog() as logs:
-            beets.ui._raw_main(['check'])
-        self.assertIn('WARNING serialno 1038587646 missing *** eos: {}'
+        with self.assertRaises(SystemExit):
+            with captureLog() as logs:
+                beets.ui._raw_main(['check', '--external'])
+        self.assertIn('WARNING non-zero exit code for oggz-validate: {}'
                       .format(item.path), logs)
 
 
 class FixIntegrityTest(TestHelper, TestCase):
+    """beet check -x"""
 
     def setUp(self):
         super(FixIntegrityTest, self).setUp()
@@ -287,8 +274,8 @@ class FixIntegrityTest(TestHelper, TestCase):
     def test_fix_integrity(self):
         item = self.addIntegrityFailFixture()
 
-        with captureLog() as logs:
-            beets.ui._raw_main(['check', '-i'])
+        with self.assertRaises(SystemExit), captureLog() as logs:
+                beets.ui._raw_main(['check', '-e'])
         self.assertIn('WARNING It seems that file is truncated',
                       '\n'.join(logs))
 
@@ -298,15 +285,15 @@ class FixIntegrityTest(TestHelper, TestCase):
         self.assertIn('FIXED: {}'.format(item.path), '\n'.join(logs))
 
         with captureLog() as logs:
-            beets.ui._raw_main(['check', '-i'])
+            beets.ui._raw_main(['check', '-e'])
         self.assertNotIn('WARNING It seems that file is truncated',
                          '\n'.join(logs))
 
     def test_fix_without_confirmation(self):
         item = self.addIntegrityFailFixture()
 
-        with captureLog() as logs:
-            beets.ui._raw_main(['check', '-i'])
+        with self.assertRaises(SystemExit), captureLog() as logs:
+                beets.ui._raw_main(['check', '-e'])
         self.assertIn('WARNING It seems that file is truncated',
                       '\n'.join(logs))
 
@@ -315,7 +302,7 @@ class FixIntegrityTest(TestHelper, TestCase):
         self.assertIn(item.path, '\n'.join(logs))
 
         with captureLog() as logs:
-            beets.ui._raw_main(['check', '-i'])
+            beets.ui._raw_main(['check', '-e'])
         self.assertNotIn('WARNING It seems that file is truncated',
                          '\n'.join(logs))
 
@@ -325,7 +312,7 @@ class FixIntegrityTest(TestHelper, TestCase):
         beets.ui._raw_main(['check', '--fix', '--force'])
 
         item.load()
-        check.verify_checksum(item)
+        verify_checksum(item)
         self.assertNotEqual(old_checksum, item['checksum'])
 
     def test_dont_fix_with_wrong_checksum(self):
@@ -350,37 +337,7 @@ class FixIntegrityTest(TestHelper, TestCase):
         item = self.addIntegrityFailFixture()
         with controlStdin(u'n'):
             beets.ui._raw_main(['check', '--fix'])
-        check.verify_checksum(item)
-
-    def test_keep_backup(self):
-        item = self.addIntegrityFailFixture()
-        old_checksum = item['checksum']
-
-        with controlStdin(u'y'), captureStdout() as stdout:
-            beets.ui._raw_main(['check', '--fix'])
-        self.assertIn('Backup files will be created', stdout.getvalue())
-
-        backup = Item(path=item.path + '.bak', checksum=old_checksum)
-        self.assertTrue(os.path.isfile(backup.path))
-        check.verify_checksum(backup)
-
-    def test_dont_keep_backup_flag(self):
-        item = self.addIntegrityFailFixture()
-
-        with controlStdin(u'y'), captureStdout() as stdout:
-            beets.ui._raw_main(['check', '--fix', '--no-backup'])
-        self.assertIn('No backup files will be created', stdout.getvalue())
-
-        backup_path = item.path + '.bak'
-        self.assertFalse(os.path.isfile(backup_path))
-
-    def test_dont_keep_backup_config(self):
-        item = self.addIntegrityFailFixture()
-        self.config['check']['backup'] = False
-
-        beets.ui._raw_main(['check', '--fix', '--force'])
-        backup_path = item.path + '.bak'
-        self.assertFalse(os.path.isfile(backup_path))
+        verify_checksum(item)
 
 
 class ToolListTest(TestHelper, TestCase):

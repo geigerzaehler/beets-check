@@ -6,23 +6,24 @@ beets-check
 *The [beets][] plugin for paranoid obsessive-compulsive music geeks.*
 
 *beets-check* lets you verify the integrity of your audio files. It computes
-and validates file checksums and uses third party tools to check the integrity
-of audio data.
+and validates file checksums and uses third party tools to run custom
+tests on files.
 
 To use this plugin, make sure your have at least version 1.3.7 of
 beets installed.
 
 ```
 pip install --upgrade beets>=1.3.7
-pip install https://github.com/geigerzaehler/beets-check/archive/v0.9.2.zip
+pip install git+git://github.com/geigerzaehler/beets-check.git@master
 ```
 
 Then add `check` to the list of plugins in your beet configuration.
 (Running `beet config --edit` might be the quickest way.)
 
-If you want to use third-party tools to verify the integrity of your
-audio files you have to manually install them on your system. Run `beet
-check --list-tools` to see a list of programs that the plugin can use.
+If you want to use third-party tools to test your audio files you have
+to manually install them on your system. Run `beet check --list-tools`
+to see a list of programs the plugin can use or [add your
+own](#third-party-tests).
 
 
 Usage
@@ -38,15 +39,14 @@ Adding unknown checksums:  1032/8337 [12%]
 
 The `check` command looks for all files that don’t have a checksum yet.
 It computes the checksum for each of these files and stores it in the
-database.  The command also prints a warning if one of the integrity
-tools has found an error.
+database.  The command also prints a warning if one of the third-party
+tools finds an error. (More on those [later](#third-party-tests).)
 
 After some time (or maybe a system crash) you’ll probably want to go back to
 your library and verify that none of the files have changed. To do this run
 
 ```
 $ beet check
-WARNING integrity error: /music/Abbey Road/01 Come Together.mp3
 FAILED: /music/Sgt. Pepper/13 A Day in the Life.mp3
 Verifying checksums:  5102/8337 [53%]
 ```
@@ -56,32 +56,45 @@ redirect the error output with `beet check 2>check.log`. All `WARNING`
 and `ERROR` lines are sent to stderr, so you will still see the
 progressbar.
 
-
-If you have changed one of your files on purpose, its checksum most certainly
-will have changed, too. So go ahead and update the database.
+When you change your files through beets, using the `modfiy` command
+for example, the plugin will [update the checksums
+automatically](#automatic-update). However, if you change files
+manually, you also need to update the checksums manually.
 ```
 $ beet check -u 'album:Sgt. Pepper'
 Updating checksums:  2/13 [15%]
 ```
 
-Oftentimes it is possible to fix integrity errors in MP3 files. Since `v0.9.2`
-*beets-check* can do this for you, but you will need the *mp3val* program.
+### Third-party Tests
+
+The plugin allows you to add custom file checks through external tools.
+The plugin supports `flac --test`, `oggz-validate`, and `mp3val` out of
+the box, but you can also [configure your own](#third-party-tools).
+
+Custom tests are run when on the following occasions.
+
+* Before importing a file (see below)
+* Before adding checksums with the `-a` flag
+* When running `beet check --external`
+
+The file checks are not run when updating files. The rationale is that
+if the checksum of a file is correct, the file is assumed to be clean
+and pass all the custom tests.
+
+If some file fails a test the line 
 ```
-$ beet check -x 'album:Abbey Road'
-Verifying integrity: 17/17 [100%]
-/music/Abbey Road/01 Come Together.mp3
-/music/Abbey Road/17 Her Majesty.mp3
-Do you want to fix these files? (y/n) y
-Fixing files: 1/2 [50%]
+WARNING error description: /path/to/file
 ```
-This will fix the files, keep a backup and update the checksums.
+is printed.
+
 
 ### Usage with `import`
 
 Since it would be tedious to run `check -a` every time you import new music
-into beets, *beets-check* will add checksum automatically. Before an album or
-track is imported an integrity check is run. If the check fails beets will ask
-you to confirm the import.
+into beets, *beets-check* will add checksum automatically. Before file
+is imported the plugin will also check the file with the provided
+third-party tools. If the check fails beets will ask you to confirm the
+import.
 
 ```
 $ beet import 'Abbey Road'
@@ -99,8 +112,9 @@ After a track has been added to the database and all modifications to the tags
 have been written, beets-check adds the checksums. This is virtually the same as
 running ``beets check -a `` after the import.
 
-If you run `import` with the `--quiet` flag the importer will skip corrupted
-files automatically and log an error.
+If you run `import` with the `--quiet` flag the importer will skip
+files that do not pass third-party tests automatically and log an
+error.
 
 
 ### Automatic Update
@@ -157,11 +171,11 @@ CLI Reference
 
 ```
 beet check [--quiet]
-                 [ --integrity
+                 [ --external
                  | --add
                  | --update [--force]
                  | --export
-                 | --fix [--force] [--no-backup]
+                 | --fix [--force]
                  ] [QUERY...]
 beet check --list-tools
 ```
@@ -173,20 +187,24 @@ matching the query.  Remember, if a query contains a slash beets will
 [interpret it as a path][path query] and match all files that are contained in
 a subdirectory of that path.
 
-- **`beet check [-q] [QUERY...]`** By default the plugin will verify all known
-  checksums and also run integrity tests for all files. Integrity tests can
-  be disabled with the `integrity` configuration option.
+The default `check` command, as well as the `--add`, `--update`, and
+`--external` commands provide structured output to `stderr` to be easily parseable
+by other tools. If a file’s checksum cannot be verified the line
+`FAILED: /path/to/file` is printed to stdout. If an external test
+fails, the line `WARNING error description: /path/to/file` is printed.
 
-  If the standard output is a terminal it shows a progress statement like in
-  the example above. If the checksum verification of a file failed the command
-  prints `FAILED: /path/to/file` to the error output. And if one of the
-  third-party tools detects an error it will print `WARNING error description:
-  /path/to/file` to *stderr*. If at least one file has an invalid checksum the
-  program will exit with status code `15`.
+In addition, the commands print a progress indicator to `stdout` if
+`stdout` is connected to a terminal. This can be disabled with the
+**`-q, --quiet`** flag.
 
-- **`-i, --integrity`** Only run third-party tools to check integrity and don
-  not verify checksum. The output is the same is described in the default
-  command.
+- **`beet check [-q] [QUERY...]`** The default command verifies all
+  file checksums against the database. The output is described above.
+  Exits with status code `15` if at least one file does not pass a
+  test.
+
+- **`-e, --external`** Run third-party tools for the given file. The
+  output is described above. Exits with status code `15` if at least
+  one file does not pass a test.
 
 - **`-a, --add`** Look for files in the database that don’t have a
   checksum, compute it from the file and add it to the database. This will also
@@ -198,27 +216,20 @@ a subdirectory of that path.
   certainly not what you want, beets will ask you for confirmation in that
   case unless the `--force` flag is set.
 
-- **`-e, --export`** Outputs a list of filenames with corresponding
+- **`--export`** Outputs a list of filenames with corresponding
   checksums in the format used by the `sha256sum` command. You can then use
   that command to check your files externally. For example
   `beet check -e | sha256sum -c`.
 
-- **`-x, --fix [--force | -f] [--no-backup | -B]`** Since `v0.9.2`. Fix MP3
-  files with integrity errors. Since this changes files it will ask for you to
-  confirm the fixes. This can be disabled with the `--force` flag. For every
-  fixed file the command preserves a backup of the original file with the `.bak`
-  extension added to it. Backups can be disabled with the `--no-backup` flag or
-  the `backup` configuration.
+- **`-x, --fix [--force | -f]`** Since `v0.9.2`. Fix files with
+  third-party tools. Since this changes files it will ask for you to
+  confirm the fixes. This can be disabled with the `--force` flag.
 
 - **`-l, --list-tools`** Outputs a list of third party programs that
   *beets-check* uses to verify file integrity and shows whether they are
   installed. The plugin comes with support for the
   [`oggz-validate`][oggz-validate], [`mp3val`][mp3val] and [`flac`][flac] commands.
 
-All commands accept a quiet flag.
-
-- **`-q, --quiet`** Suppresse the progress line but still print verification
-  errors. This is the default if stdout is not connected to a terminal.
 
 [path query]: http://beets.readthedocs.org/en/latest/reference/query.html#path-queries
 [flac]: https://xiph.org/flac/documentation_tools_flac.html
@@ -238,8 +249,6 @@ check:
   write-check: yes
   write-update: yes
   convert-update: yes
-  integrity: yes
-  backup: yes
   threads: num_of_cpus
 ```
 
@@ -255,10 +264,53 @@ other beets commands. You can disable each option by setting its value to `no`.
   `beet write` or `beet modify`.
 * `convert-update: no` Don’t updated the checksum if a file has been
   converted with the `--keep-new` flag.
-* `integrity: no` Don’t use third party tools to check the integrity of
-  a file when running `check`, `check --add` or on import.
 * `threads: 4` Use four threads to compute checksums.
-* `backup: no` Don’t keep a backup of the original when fixing a file.
+
+### Third-party Tools
+
+*beets-check* allows you to configure custom tests for your files. 
+
+Custom tests are shell commands that are run on an audio file and
+may produce an error.
+
+```yaml
+check:
+  tools:
+    mp3val:
+      cmd: 'mp3val {}'
+      formats: MP3
+      error: '^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$'
+      fix: 'mp3val -f -nb {}'
+```
+
+Each tool is a dictionary entry under `check.tools`, where the key is
+the tools name and the value is a configuration dictionary with the
+following keys.
+
+- **`cmd`** The shell command that tests the file. The string is
+  formatted with python’s [`str.format()`][python-format] to replace
+  '{}' with the quoted path of the file to check.
+
+- **`formats`** A space separated list of audio formats the tool can
+  check. Valid formats include 'MP'
+
+- **`error`** Python regular expression to match against the tools
+  output. If a match is found, an error is assumed to have occured
+  and the error description is the first match group.
+
+- **`fix`** Shell command to run when fixing files. The command is
+  formtted similar to `cmd`.
+
+A test run with a given tool is assumed to have failed in one of the
+following two cases.
+
+- The combined output of `stdout` and `stderr` matches the `error`
+  Regular Expression.
+
+- The shell command exits with a non-zero status code.
+
+
+[python-format]:https://docs.python.org/2/library/string.html#format-string-syntax
 
 
 License
