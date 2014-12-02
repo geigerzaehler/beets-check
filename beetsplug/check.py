@@ -483,9 +483,8 @@ class IntegrityChecker(object):
     def check(self, item):
         if not self.can_check(item):
             return
-        # TODO close stdin
-        process = Popen(self.cmdline.format(item.path), shell=True,
-                        stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+        process = Popen(self.cmdline.format(self.shellquote(item.path)),
+                        shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         stdout = process.communicate()[0]
         if self.error_match:
             match = self.error_match.search(stdout)
@@ -501,6 +500,8 @@ class IntegrityChecker(object):
         return self.can_check(item) and self.fixcmd
 
     def fix(self, item):
-        process = Popen(self.fixcmd.format(item.path), shell=True,
-                        stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-        stdout, stderr = process.communicate()
+        check_call(self.fixcmd.format(self.shellquote(item.path)),
+                   shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+
+    def shellquote(self, s):
+            return "'" + s.replace("'", "'\\'") + "'"
