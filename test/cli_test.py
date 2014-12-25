@@ -259,6 +259,15 @@ class IntegrityCheckTest(TestHelper, TestCase):
         self.assertIn('WARNING non-zero exit code for oggz-validate: {}'
                       .format(item.path), logs)
 
+    def test_shellquote(self):
+        item = self.lib.items(['path::ok.flac']).get()
+        item['title'] = "ok's"
+        item.move()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '--external', item.title])
+        self.assertNotIn('WARNING', '\n'.join(logs))
+
 
 class FixIntegrityTest(TestHelper, TestCase):
     """beet check -x"""

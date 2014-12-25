@@ -504,4 +504,4 @@ class IntegrityChecker(object):
                    shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
 
     def shellquote(self, s):
-            return "'" + s.replace("'", "'\\'") + "'"
+            return "'" + s.replace("'", r"'\''") + "'"
