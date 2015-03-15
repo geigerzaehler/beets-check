@@ -25,7 +25,7 @@ from beets import importer, config
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, decargs, colorize, input_yn, UserError
 from beets.library import ReadError
-from beets.util import cpu_count, displayable_path
+from beets.util import cpu_count, displayable_path, syspath
 
 log = logging.getLogger('beets.check')
 
@@ -37,7 +37,7 @@ def set_checksum(item):
 
 def compute_checksum(item):
     hash = sha256()
-    with open(item.path, 'rb') as file:
+    with open(syspath(item.path), 'rb') as file:
         hash.update(file.read())
     return hash.hexdigest()
 
@@ -156,7 +156,7 @@ class CheckPlugin(BeetsPlugin):
         if integrity_errors:
             log.warn(u'Warning: failed to verify integrity')
             for error in integrity_errors:
-                log.warn('  {}: {}'.format(item.path, error))
+                log.warn('  {}: {}'.format(displayable_path(item.path), error))
             if beets.config['import']['quiet'] \
                or input_yn(u'Do you want to skip this album (Y/n)'):
                 log.info(u'Skipping.')
@@ -241,7 +241,7 @@ class CheckCommand(Subcommand):
                  if not i.get('checksum', None)]
 
         def add(item):
-            log.debug(u'adding checksum for {0}'.format(item.path))
+            log.debug(u'adding checksum for {0}'.format(displayable_path(item.path)))
             set_checksum(item)
             if self.check_integrity:
                 try:
@@ -351,7 +351,7 @@ class CheckCommand(Subcommand):
                 failed.append(item)
             except ChecksumError:
                 log.error(u'{}: {}'.format(colorize('red', u'FAILED checksum'),
-                                           item.path))
+                                           displayable_path(item.path)))
             except IOError as exc:
                 log.error(u'{} {}'.format(colorize('red', u'ERROR'), exc))
 
@@ -362,7 +362,7 @@ class CheckCommand(Subcommand):
             return
 
         for item in failed:
-            log.info(item.path)
+            log.info(displayable_path(item.path))
 
         if ask and not input_yn(u'Do you want to fix these files? {} (y/n)',
                                 require=True):
@@ -373,7 +373,7 @@ class CheckCommand(Subcommand):
             if fixer:
                 fixer.fix(item)
                 log.debug(u'{}: {}'.format(colorize('green', u'FIXED'),
-                                           item.path))
+                                           displayable_path(item.path)))
                 set_checksum(item)
 
         self.execute_with_progress(fix, failed, msg=u'Fixing files')
@@ -483,7 +483,7 @@ class IntegrityChecker(object):
     def check(self, item):
         if not self.can_check(item):
             return
-        process = Popen(self.cmdline.format(self.shellquote(item.path)),
+        process = Popen(self.cmdline.format(self.shellquote(syspath(item.path))),
                         shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         stdout = process.communicate()[0]
         if self.error_match:
@@ -500,7 +500,7 @@ class IntegrityChecker(object):
         return self.can_check(item) and self.fixcmd
 
     def fix(self, item):
-        check_call(self.fixcmd.format(self.shellquote(item.path)),
+        check_call(self.fixcmd.format(self.shellquote(syspath(item.path))),
                    shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
 
     def shellquote(self, s):
