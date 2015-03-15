@@ -232,35 +232,37 @@ class IntegrityCheckTest(TestHelper, TestCase):
         super(IntegrityCheckTest, self).tearDown()
 
     def test_mp3_integrity(self):
-        item = self.lib.items(['path::truncated.mp3']).get()
+        item = self.lib.items([u'path::truncated.mp3']).get()
 
         with self.assertRaises(SystemExit):
             with captureLog() as logs:
                 beets.ui._raw_main(['check', '--external'])
-        self.assertIn('WARNING It seems that file is '
-                      'truncated or there is garbage at the '
-                      'end of the file: {}'.format(item.path), logs)
+        print('\n'.join(logs))
+        self.assertIn(u'check: WARNING It seems that file is '
+                       'truncated or there is garbage at the '
+                       'end of the file: {}'.format(item.path), logs)
 
     def test_flac_integrity(self):
-        item = self.lib.items('truncated.flac').get()
+        item = self.lib.items(u'truncated.flac').get()
 
         with self.assertRaises(SystemExit):
             with captureLog() as logs:
                 beets.ui._raw_main(['check', '--external'])
-        self.assertIn(
-            'WARNING while decoding data: {}'.format(item.path), logs)
+        print('\n'.join(logs))
+        self.assertIn(u'check: WARNING while decoding data: {}'
+                      .format(item.path), logs)
 
     def test_ogg_vorbis_integrity(self):
-        item = self.lib.items('truncated.ogg').get()
+        item = self.lib.items(u'truncated.ogg').get()
 
         with self.assertRaises(SystemExit):
             with captureLog() as logs:
                 beets.ui._raw_main(['check', '--external'])
-        self.assertIn('WARNING non-zero exit code for oggz-validate: {}'
+                self.assertIn(u'check: WARNING non-zero exit code for oggz-validate: {}'
                       .format(item.path), logs)
 
     def test_shellquote(self):
-        item = self.lib.items(['path::ok.flac']).get()
+        item = self.lib.items([u'ok.flac']).get()
         item['title'] = "ok's"
         item.move()
 

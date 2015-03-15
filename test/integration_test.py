@@ -77,7 +77,7 @@ class ImportTest(TestHelper, TestCase):
                 captureStdout() as stdout, captureLog() as logs:
             beets.ui._raw_main(['import', self.import_dir])
 
-        self.assertIn('Warning: failed to verify integrity', '\n'.join(logs))
+        self.assertIn('check: Warning: failed to verify integrity', logs)
         self.assertIn('truncated.mp3: file is corrupt', '\n'.join(logs))
         self.assertIn('Do you want to skip this album', stdout.getvalue())
         self.assertEqual(len(self.lib.items()), 0)
@@ -89,22 +89,20 @@ class ImportTest(TestHelper, TestCase):
         with self.mockAutotag(), captureLog() as logs:
             beets.ui._raw_main(['import', '-q', self.import_dir])
 
-        self.assertIn('Warning: failed to verify integrity', logs)
-        self.assertIn('truncated.mp3: file is corrupt\nSkipping.',
+        self.assertIn('check: Warning: failed to verify integrity', logs)
+        self.assertIn('truncated.mp3: file is corrupt\ncheck: Skipping.',
                       '\n'.join(logs))
         self.assertEqual(len(self.lib.items()), 0)
 
     def test_add_corrupt_files(self):
         MockChecker.install()
-        print plugins._classes, plugins._instances
-        print self.config['plugins']
         self.setupImportDir(['ok.mp3', 'truncated.mp3'])
 
         with self.mockAutotag(), controlStdin('n'):
             beets.ui._raw_main(['import', self.import_dir])
 
         self.assertEqual(len(self.lib.items()), 2)
-        item = self.lib.items('truncated').get()
+        item = self.lib.items(u'truncated').get()
         mediafile = MediaFile(item.path)
         self.assertEqual(mediafile.title, 'truncated tag')
 
@@ -117,7 +115,7 @@ class WriteTest(TestHelper, TestCase):
         self.setupFixtureLibrary()
 
     def test_log_error_for_invalid_checksum(self):
-        item = self.lib.items('ok').get()
+        item = self.lib.items(u'ok').get()
         verify_checksum(item)
         self.modifyFile(item.path)
 
@@ -128,7 +126,7 @@ class WriteTest(TestHelper, TestCase):
             r'error reading .*: checksum did not match value in library')
 
     def test_abort_write_when_invalid_checksum(self):
-        item = self.lib.items('ok').get()
+        item = self.lib.items(u'ok').get()
         verify_checksum(item)
         self.modifyFile(item.path, title='other title')
 
@@ -142,7 +140,7 @@ class WriteTest(TestHelper, TestCase):
     def test_write_on_integrity_error(self):
         MockChecker.install()
 
-        item = self.lib.items('truncated').get()
+        item = self.lib.items(u'truncated').get()
 
         item['title'] = 'newtitle'
         item.store()
@@ -154,7 +152,7 @@ class WriteTest(TestHelper, TestCase):
         self.assertEqual(mediafile.title, 'newtitle')
 
     def test_update_checksum(self):
-        item = self.lib.items('ok').get()
+        item = self.lib.items(u'ok').get()
         orig_checksum = item['checksum']
         verify_checksum(item)
 
@@ -188,13 +186,13 @@ class ConvertTest(TestHelper, TestCase):
             beets.ui._raw_main(['convert', 'ok.ogg'])
 
     def test_update_after_keep_new_convert(self):
-        item = self.lib.items('ok.ogg').get()
+        item = self.lib.items(u'ok.ogg').get()
         verify_checksum(item)
 
         with controlStdin('y'):
             beets.ui._raw_main(['convert', '--keep-new', 'ok.ogg'])
 
-        converted = self.lib.items('ok.ogg').get()
+        converted = self.lib.items(u'ok.ogg').get()
         self.assertNotEqual(converted.path, item.path)
         self.assertNotEqual(converted.checksum, item.checksum)
         verify_checksum(converted)

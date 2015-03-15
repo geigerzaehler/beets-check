@@ -268,7 +268,7 @@ other beets commands. You can disable each option by setting its value to `no`.
 
 ### Third-party Tools
 
-*beets-check* allows you to configure custom tests for your files. 
+*beets-check* allows you to configure custom tests for your files.
 
 Custom tests are shell commands that are run on an audio file and
 may produce an error.
@@ -311,6 +311,12 @@ following two cases.
 
 
 [python-format]:https://docs.python.org/2/library/string.html#format-string-syntax
+
+Changelog
+---------
+
+### Upcoming
+- Drop support for `beets<=1.3.10`
 
 
 License
