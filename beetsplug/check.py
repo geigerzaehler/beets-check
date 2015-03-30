@@ -256,7 +256,7 @@ class CheckCommand(Subcommand):
     def check(self, external):
         if external and not IntegrityChecker.allAvailable():
             no_checkers_warning = u"No integrity checkers found. " \
-                                  "Run 'beet check --list -tools'"
+                                  "Run 'beet check --list-tools'"
             raise UserError(no_checkers_warning)
 
         if external:
