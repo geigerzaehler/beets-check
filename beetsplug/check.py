@@ -156,7 +156,7 @@ class CheckPlugin(BeetsPlugin):
         if integrity_errors:
             log.warn(u'Warning: failed to verify integrity')
             for error in integrity_errors:
-                log.warn('  {}: {}'.format(displayable_path(item.path), error))
+                log.warn(u'  {}: {}'.format(displayable_path(item.path), error))
             if beets.config['import']['quiet'] \
                or input_yn(u'Do you want to skip this album (Y/n)'):
                 log.info(u'Skipping.')
