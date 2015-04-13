@@ -7,11 +7,6 @@ env:
   - TOX_ENV=beets-master
   - TOX_ENV=beets-release
 
-# TODO remove allowed failures after release of beets v1.3.11
-matrix:
-  allow_failures:
-    - env: TOX_ENV=beets-release
-
 install:
   - "sudo apt-get install flac mp3val oggz-tools"
   - "pip install coveralls tox"
