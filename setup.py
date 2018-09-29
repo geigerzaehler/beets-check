@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='beets-check',
-    version='0.10.0-beta.0',
+    version='0.11.0-dev.0',
     description='beets plugin verifying file integrity with checksums',
     long_description=open('README.md').read(),
     author='Thomas Scholtes',
@@ -16,7 +16,7 @@ setup(
     packages=['beetsplug'],
 
     install_requires=[
-        'beets>=1.3.7',
+        'beets>=1.4.3',
         'futures',
     ],
 

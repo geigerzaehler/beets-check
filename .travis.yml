@@ -4,8 +4,8 @@ notifications:
 language: python
 
 env:
-  - TOX_ENV=beets-master
-  - TOX_ENV=beets-release
+  - TOX_ENV=beets_master
+  - TOX_ENV=beets_1.4.3
 
 install:
   - "sudo apt-get install flac mp3val oggz-tools"

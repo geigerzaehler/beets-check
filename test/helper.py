@@ -10,7 +10,7 @@ import beets
 from beets import autotag
 from beets import plugins
 from beets.autotag import AlbumInfo, TrackInfo, \
-    AlbumMatch, TrackMatch, Recommendation
+    AlbumMatch, TrackMatch, Recommendation, Proposal
 from beets.autotag.hooks import Distance
 from beets.library import Item
 from beets.mediafile import MediaFile
@@ -84,7 +84,7 @@ class TestHelper(object):
 
         self.config['plugins'] = []
         self.config['verbose'] = True
-        self.config['color'] = False
+        self.config['ui']['color'] = False
         self.config['threaded'] = False
         self.config['import']['copy'] = False
 
@@ -205,13 +205,13 @@ class AutotagMock(object):
                                tracks=mapping.values())
         match = AlbumMatch(distance=dist, info=album_info, mapping=mapping,
                            extra_items=[], extra_tracks=[])
-        return artist, album, [match], Recommendation.strong
+        return artist, album, Proposal([match], Recommendation.strong)
 
     def tag_item(self, item, **kwargs):
         title = (item.title or '') + ' tag'
         track_info = TrackInfo(title=title, track_id=self.nextid())
         match = TrackMatch(distance=Distance(), info=track_info)
-        return [match], Recommendation.strong
+        return Proposal([match], Recommendation.strong)
 
 
 class MockChecker(object):
