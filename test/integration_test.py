@@ -5,7 +5,6 @@ import beets
 import beets.ui
 import beets.library
 from beets.mediafile import MediaFile
-from beets import plugins
 
 from helper import TestHelper, captureLog, \
     controlStdin, captureStdout, MockChecker

@@ -239,8 +239,8 @@ class IntegrityCheckTest(TestHelper, TestCase):
                 beets.ui._raw_main(['check', '--external'])
         print('\n'.join(logs))
         self.assertIn(u'check: WARNING It seems that file is '
-                       'truncated or there is garbage at the '
-                       'end of the file: {}'.format(item.path), logs)
+                      'truncated or there is garbage at the '
+                      'end of the file: {}'.format(item.path), logs)
 
     def test_flac_integrity(self):
         item = self.lib.items(u'truncated.flac').get()
@@ -258,8 +258,11 @@ class IntegrityCheckTest(TestHelper, TestCase):
         with self.assertRaises(SystemExit):
             with captureLog() as logs:
                 beets.ui._raw_main(['check', '--external'])
-                self.assertIn(u'check: WARNING non-zero exit code for oggz-validate: {}'
-                      .format(item.path), logs)
+                self.assertIn(
+                    u'check: WARNING non-zero exit code for oggz-validate: {}'
+                    .format(item.path),
+                    logs
+                )
 
     def test_shellquote(self):
         item = self.lib.items([u'ok.flac']).get()

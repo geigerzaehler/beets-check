@@ -6,6 +6,7 @@ language: python
 env:
   - TOX_ENV=beets_master
   - TOX_ENV=beets_1.4.3
+  - TOX_ENV=flake8
 
 install:
   - "sudo apt-get install flac mp3val oggz-tools"

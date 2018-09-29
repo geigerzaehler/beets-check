@@ -72,7 +72,7 @@ class CheckPlugin(BeetsPlugin):
                 'mp3val': {
                     'cmdline': 'mp3val {0}',
                     'formats': 'MP3',
-                    'error' : '^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$',
+                    'error': '^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$',
                     'fix': 'mp3val -nb -f {0}'
                 },
                 'flac': {
@@ -156,7 +156,9 @@ class CheckPlugin(BeetsPlugin):
         if integrity_errors:
             log.warn(u'Warning: failed to verify integrity')
             for error in integrity_errors:
-                log.warn(u'  {}: {}'.format(displayable_path(item.path), error))
+                log.warn(
+                    u'  {}: {}'.format(displayable_path(item.path), error)
+                )
             if beets.config['import']['quiet'] \
                or input_yn(u'Do you want to skip this album (Y/n)'):
                 log.info(u'Skipping.')
@@ -241,7 +243,9 @@ class CheckCommand(Subcommand):
                  if not i.get('checksum', None)]
 
         def add(item):
-            log.debug(u'adding checksum for {0}'.format(displayable_path(item.path)))
+            log.debug(
+                u'adding checksum for {0}'.format(displayable_path(item.path))
+            )
             set_checksum(item)
             if self.check_integrity:
                 try:
@@ -483,8 +487,10 @@ class IntegrityChecker(object):
     def check(self, item):
         if not self.can_check(item):
             return
-        process = Popen(self.cmdline.format(self.shellquote(syspath(item.path))),
-                        shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+        process = Popen(
+            self.cmdline.format(self.shellquote(syspath(item.path))),
+            shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT
+        )
         stdout = process.communicate()[0]
         if self.error_match:
             match = self.error_match.search(stdout)
