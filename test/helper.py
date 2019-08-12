@@ -4,7 +4,11 @@ import tempfile
 import logging
 import shutil
 from contextlib import contextmanager
-from StringIO import StringIO
+
+try:
+        from StringIO import StringIO
+except ImportError:
+        from io import StringIO
 
 import beets
 from beets import autotag
@@ -55,7 +59,6 @@ def captureStdout():
 def controlStdin(input=None):
     org = sys.stdin
     sys.stdin = StringIO(input)
-    sys.stdin.encoding = 'utf8'
     try:
         yield sys.stdin
     finally:
@@ -130,7 +133,7 @@ class TestHelper(object):
         item.store()
         return item
 
-    def addItemFixture(self, basename='ok.ogg'):
+    def addItemFixture(self, basename):
         src = os.path.join(self.fixture_dir, basename)
         dst = os.path.join(self.libdir, basename)
         shutil.copy(src, dst)
@@ -196,7 +199,7 @@ class AutotagMock(object):
         dist.tracks = {}
         for item in items:
             title = (item.title or '') + ' tag'
-            track_info = TrackInfo(title=title, track_id=self.nextid())
+            track_info = TrackInfo(title=title, track_id=self.nextid(), index=1)
             mapping[item] = track_info
             dist.tracks[track_info] = Distance()
 
@@ -231,5 +234,5 @@ class MockChecker(object):
         check.IntegrityChecker._all_available = []
 
     def check(self, item):
-        if 'truncated' in item.path:
+        if b'truncated' in item.path:
             raise check.IntegrityError(item.path, 'file is corrupt')
