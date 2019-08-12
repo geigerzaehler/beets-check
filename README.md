@@ -315,7 +315,8 @@ following two cases.
 Changelog
 ---------
 
-### Upcoming
+### v0.12.0 2019-08-12
+- Add support for Python 3
 - Drop support for `beets<=1.3.10`
 
 

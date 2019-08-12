@@ -3,15 +3,26 @@ notifications:
 
 language: python
 
-env:
-  - TOX_ENV=beets_master
-  - TOX_ENV=beets_1.4.3
-  - TOX_ENV=flake8
+matrix:
+  include:
+    - env: TOX_ENV=py27-beets_master
+      python: 2.7
+    - env: TOX_ENV=py27-beets_1.4.3
+      python: 2.7
+    - env: TOX_ENV=py36-beets_master COVERAGE=1
+      python: 3.6
+    - env: TOX_ENV=py36-beets_1.4.3
+      python: 3.6
+    - env: TOX_ENV=py36-flake8
+      python: 3.6
+
 
 install:
   - "sudo apt-get install flac mp3val oggz-tools"
-  - "pip install coveralls tox"
+  - "pip install tox"
+  - "[ ! -z $COVERAGE ] && pip install coveralls || true"
 
 script: "tox -e $TOX_ENV"
 
-after_success: coveralls
+after_success:
+  - "[ ! -z $COVERAGE ] && coveralls || true"

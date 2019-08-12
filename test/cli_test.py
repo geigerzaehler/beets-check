@@ -7,7 +7,7 @@ import beets.library
 from beets.library import Item
 from beets.ui import UserError
 
-from helper import TestHelper, captureLog, \
+from test.helper import TestHelper, captureLog, \
     captureStdout, controlStdin, MockChecker
 from beetsplug.check import verify_checksum, set_checksum
 
@@ -55,7 +55,7 @@ class CheckAddTest(TestBase, TestCase):
         with captureLog() as logs:
             beets.ui._raw_main(['check', '-a'])
 
-        self.assertIn('WARNING file is corrupt: {}'.format(item.path),
+        self.assertIn('WARNING file is corrupt: {}'.format(item.path.decode('utf-8')),
                       '\n'.join(logs))
 
 
@@ -80,7 +80,7 @@ class CheckTest(TestBase, TestCase):
         except SystemExit:
             pass
 
-        self.assertIn('FAILED: {}'.format(item.path), '\n'.join(logs))
+        self.assertIn('FAILED: {}'.format(item.path.decode('utf-8')), '\n'.join(logs))
 
     def test_not_found_error_log(self):
         self.setupFixtureLibrary()
@@ -95,8 +95,7 @@ class CheckTest(TestBase, TestCase):
             pass
 
         self.assertIn("OK:", '\n'.join(logs))
-        self.assertIn("ERROR [Errno 2] No such file or directory: '{}'"
-                      .format(item.path), '\n'.join(logs))
+        self.assertIn('ERROR [Errno 2] No such file or directory', '\n'.join(logs))
 
     def test_check_failed_exit_code(self):
         self.setupFixtureLibrary()
@@ -200,8 +199,7 @@ class CheckUpdateTest(TestBase, TestCase):
         with captureLog() as logs:
             beets.ui._raw_main(['check', '--update', '--force'])
 
-        self.assertIn("ERROR [Errno 2] No such file or directory: '{}'"
-                      .format(item.path), '\n'.join(logs))
+        self.assertIn('ERROR [Errno 2] No such file or directory', '\n'.join(logs))
 
 
 class CheckExportTest(TestBase, TestCase):
@@ -213,7 +211,7 @@ class CheckExportTest(TestBase, TestCase):
             beets.ui._raw_main(['check', '--export'])
 
         item = self.lib.items().get()
-        self.assertIn('{} *{}\n'.format(item.checksum, item.path),
+        self.assertIn('{} *{}\n'.format(item.checksum, item.path.decode('utf-8')),
                       stdout.getvalue())
 
 
@@ -240,7 +238,7 @@ class IntegrityCheckTest(TestHelper, TestCase):
         print('\n'.join(logs))
         self.assertIn(u'check: WARNING It seems that file is '
                       'truncated or there is garbage at the '
-                      'end of the file: {}'.format(item.path), logs)
+                      'end of the file: {}'.format(item.path.decode('utf-8')), logs)
 
     def test_flac_integrity(self):
         item = self.lib.items(u'truncated.flac').get()
@@ -250,7 +248,7 @@ class IntegrityCheckTest(TestHelper, TestCase):
                 beets.ui._raw_main(['check', '--external'])
         print('\n'.join(logs))
         self.assertIn(u'check: WARNING while decoding data: {}'
-                      .format(item.path), logs)
+                      .format(item.path.decode('utf-8')), logs)
 
     def test_ogg_vorbis_integrity(self):
         item = self.lib.items(u'truncated.ogg').get()
@@ -295,8 +293,8 @@ class FixIntegrityTest(TestHelper, TestCase):
 
         with controlStdin(u'y'), captureLog() as logs:
             beets.ui._raw_main(['check', '--fix'])
-        self.assertIn(item.path, '\n'.join(logs))
-        self.assertIn('FIXED: {}'.format(item.path), '\n'.join(logs))
+        self.assertIn(item.path.decode('utf-8'), '\n'.join(logs))
+        self.assertIn('FIXED: {}'.format(item.path.decode('utf-8')), '\n'.join(logs))
 
         with captureLog() as logs:
             beets.ui._raw_main(['check', '-e'])
@@ -313,7 +311,7 @@ class FixIntegrityTest(TestHelper, TestCase):
 
         with captureLog() as logs:
             beets.ui._raw_main(['check', '--fix', '--force'])
-        self.assertIn(item.path, '\n'.join(logs))
+        self.assertIn(item.path.decode('utf-8'), '\n'.join(logs))
 
         with captureLog() as logs:
             beets.ui._raw_main(['check', '-e'])

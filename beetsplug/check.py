@@ -154,9 +154,9 @@ class CheckPlugin(BeetsPlugin):
                 integrity_errors.append(ex)
 
         if integrity_errors:
-            log.warn(u'Warning: failed to verify integrity')
+            log.warning(u'Warning: failed to verify integrity')
             for error in integrity_errors:
-                log.warn(
+                log.warning(
                     u'  {}: {}'.format(displayable_path(item.path), error)
                 )
             if beets.config['import']['quiet'] \
@@ -251,7 +251,7 @@ class CheckCommand(Subcommand):
                 try:
                     verify_integrity(item)
                 except IntegrityError as ex:
-                    log.warn(u'{} {}: {}'.format(
+                    log.warning(u'{} {}: {}'.format(
                         colorize('yellow', u'WARNING'), ex.reason,
                         displayable_path(item.path)))
 
@@ -264,7 +264,7 @@ class CheckCommand(Subcommand):
             raise UserError(no_checkers_warning)
 
         if external:
-            progs = map(lambda c: c.name, IntegrityChecker.allAvailable())
+            progs = list(map(lambda c: c.name, IntegrityChecker.allAvailable()))
             plural = 's' if len(progs) > 1 else ''
             self.log(u'Using integrity checker{} {}'
                      .format(plural, ', '.join(progs)))
@@ -285,9 +285,9 @@ class CheckCommand(Subcommand):
                                            displayable_path(item.path)))
                 failures[0] += 1
             except IntegrityError as ex:
-                log.warn(u'{} {}: {}'.format(colorize('yellow', u'WARNING'),
-                                             ex.reason,
-                                             displayable_path(item.path)))
+                log.warning(u'{} {}: {}'.format(colorize('yellow', u'WARNING'),
+                                                ex.reason,
+                                                displayable_path(item.path)))
                 failures[0] += 1
             except IOError as exc:
                 log.error(u'{} {}'.format(colorize('red', u'ERROR'), exc))
@@ -488,12 +488,12 @@ class IntegrityChecker(object):
         if not self.can_check(item):
             return
         process = Popen(
-            self.cmdline.format(self.shellquote(syspath(item.path))),
+            self.cmdline.format(self.shellquote(syspath(item.path).decode('utf-8'))),
             shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT
         )
         stdout = process.communicate()[0]
         if self.error_match:
-            match = self.error_match.search(stdout)
+            match = self.error_match.search(stdout.decode('utf-8'))
         else:
             match = False
         if match:
@@ -506,7 +506,7 @@ class IntegrityChecker(object):
         return self.can_check(item) and self.fixcmd
 
     def fix(self, item):
-        check_call(self.fixcmd.format(self.shellquote(syspath(item.path))),
+        check_call(self.fixcmd.format(self.shellquote(syspath(item.path).decode('utf-8'))),
                    shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
 
     def shellquote(self, s):

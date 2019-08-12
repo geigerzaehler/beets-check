@@ -6,7 +6,7 @@ import beets.ui
 import beets.library
 from beets.mediafile import MediaFile
 
-from helper import TestHelper, captureLog, \
+from test.helper import TestHelper, captureLog, \
     controlStdin, captureStdout, MockChecker
 from beetsplug.check import verify_checksum, IntegrityChecker
 
@@ -65,7 +65,7 @@ class ImportTest(TestHelper, TestCase):
         with self.mockAutotag():
             beets.ui._raw_main(['import', self.libdir])
 
-        item = self.lib.items([item.path]).get()
+        item = self.lib.items([item.path.decode('utf-8')]).get()
         self.assertEqual(item['checksum'], orig_checksum)
 
     def test_skip_corrupt_files(self):
