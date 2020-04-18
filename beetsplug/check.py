@@ -14,14 +14,13 @@
 import re
 import os
 import sys
-import logging
 from subprocess import Popen, PIPE, STDOUT, check_call
 from hashlib import sha256
 from optparse import OptionParser
 from concurrent import futures
 
 import beets
-from beets import importer, config
+from beets import importer, config, logging
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, decargs, colorize, input_yn, UserError
 from beets.library import ReadError
