@@ -6,6 +6,7 @@ Upcoming
 
 - Drop support for Python2.7
 - Require `beets>=1.4.7`
+- Fix a crash in `beet check --add` when a music file is not found on disk. (@ssssam)
 
 v0.12.1 2020-04-19
 ------------------

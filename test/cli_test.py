@@ -48,6 +48,18 @@ class CheckAddTest(TestBase, TestCase):
         item.load()
         self.assertEqual(item['checksum'], orig_checksum)
 
+    def test_dont_fail_missing_file(self):
+        self.setupFixtureLibrary()
+        item = self.lib.items().get()
+        del item['checksum']
+        item.path = '/doesnotexist'
+        item.store()
+
+        with captureLog() as logs:
+            beets.ui._raw_main(['check', '-a'])
+
+        self.assertIn('WARNING No such file: /doesnotexist', '\n'.join(logs))
+
     def test_add_shows_integrity_warning(self):
         MockChecker.install()
         item = self.addIntegrityFailFixture(checksum=False)
