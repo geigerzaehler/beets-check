@@ -251,7 +251,7 @@ class CheckCommand(Subcommand):
                     verify_integrity(item)
                 except IntegrityError as ex:
                     log.warning(u'{} {}: {}'.format(
-                        colorize('yellow', u'WARNING'), ex.reason,
+                        colorize('text_warning', u'WARNING'), ex.reason,
                         displayable_path(item.path)))
 
         self.execute_with_progress(add, items, msg='Adding missing checksums')
@@ -277,19 +277,19 @@ class CheckCommand(Subcommand):
                     verify_integrity(item)
                 elif item.get('checksum', None):
                     verify_checksum(item)
-                log.debug(u'{}: {}'.format(colorize('green', u'OK'),
+                log.debug(u'{}: {}'.format(colorize('text_success', u'OK'),
                                            displayable_path(item.path)))
             except ChecksumError:
-                log.error(u'{}: {}'.format(colorize('red', u'FAILED'),
+                log.error(u'{}: {}'.format(colorize('text_error', u'FAILED'),
                                            displayable_path(item.path)))
                 failures[0] += 1
             except IntegrityError as ex:
-                log.warning(u'{} {}: {}'.format(colorize('yellow', u'WARNING'),
+                log.warning(u'{} {}: {}'.format(colorize('text_warning', u'WARNING'),
                                                 ex.reason,
                                                 displayable_path(item.path)))
                 failures[0] += 1
             except IOError as exc:
-                log.error(u'{} {}'.format(colorize('red', u'ERROR'), exc))
+                log.error(u'{} {}'.format(colorize('text_error', u'ERROR'), exc))
                 failures[0] += 1
 
         if external:
@@ -327,7 +327,7 @@ class CheckCommand(Subcommand):
             try:
                 set_checksum(item)
             except IOError as exc:
-                log.error(u'{} {}'.format(colorize('red', u'ERROR'), exc))
+                log.error(u'{} {}'.format(colorize('text_error', u'ERROR'), exc))
 
         self.execute_with_progress(update, items, msg=u'Updating checksums')
 
@@ -348,15 +348,15 @@ class CheckCommand(Subcommand):
                 fixer = IntegrityChecker.fixer(item)
                 if fixer:
                     fixer.check(item)
-                    log.debug(u'{}: {}'.format(colorize('green', u'OK'),
+                    log.debug(u'{}: {}'.format(colorize('text_success', u'OK'),
                                                displayable_path(item.path)))
             except IntegrityError:
                 failed.append(item)
             except ChecksumError:
-                log.error(u'{}: {}'.format(colorize('red', u'FAILED checksum'),
+                log.error(u'{}: {}'.format(colorize('text_error', u'FAILED checksum'),
                                            displayable_path(item.path)))
             except IOError as exc:
-                log.error(u'{} {}'.format(colorize('red', u'ERROR'), exc))
+                log.error(u'{} {}'.format(colorize('text_error', u'ERROR'), exc))
 
         self.execute_with_progress(check, items, msg=u'Verifying integrity')
 
@@ -375,7 +375,7 @@ class CheckCommand(Subcommand):
             fixer = IntegrityChecker.fixer(item)
             if fixer:
                 fixer.fix(item)
-                log.debug(u'{}: {}'.format(colorize('green', u'FIXED'),
+                log.debug(u'{}: {}'.format(colorize('text_success', u'FIXED'),
                                            displayable_path(item.path)))
                 set_checksum(item)
 
@@ -388,9 +388,9 @@ class CheckCommand(Subcommand):
         for name, available in checkers:
             msg = name + (prog_length-len(name))*u' '
             if available:
-                msg += colorize('green', u'found')
+                msg += colorize('text_success', u'found')
             else:
-                msg += colorize('red', u'not found')
+                msg += colorize('text_error', u'not found')
             print(msg)
 
     def log(self, msg):
