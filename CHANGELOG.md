@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Upcoming
+--------
+
+- Drop support for Python2.7
+- Require `beets>=1.4.7`
+
 v0.12.1 2020-04-19
 ------------------
 
