@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Upcoming
---------
+v0.13.0 2020-06-27
+------------------
 
 - Drop support for Python2.7
 - Require `beets>=1.4.7`
