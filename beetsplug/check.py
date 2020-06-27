@@ -245,7 +245,13 @@ class CheckCommand(Subcommand):
             log.debug(
                 u'adding checksum for {0}'.format(displayable_path(item.path))
             )
-            set_checksum(item)
+            try:
+                set_checksum(item)
+            except FileNotFoundError as ex:
+                log.warning(u'{} {}: {}'.format(
+                    colorize('text_warning', u'WARNING'), 'No such file',
+                    displayable_path(item.path)))
+                return
             if self.check_integrity:
                 try:
                     verify_integrity(item)
