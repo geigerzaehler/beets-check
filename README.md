@@ -9,11 +9,10 @@ beets-check
 and validates file checksums and uses third party tools to run custom
 tests on files.
 
-To use this plugin, make sure your have at least version 1.4.3 of
-beets installed.
+This plugin requires at least version 1.4.7 of beets and at least Python 3.7.
 
 ```
-pip install --upgrade beets>=1.4.3
+pip install --upgrade beets>=1.4.7
 pip install git+git://github.com/geigerzaehler/beets-check.git@master
 ```
 
