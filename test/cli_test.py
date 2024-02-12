@@ -396,9 +396,9 @@ class ToolListTest(TestHelper, TestCase):
         shutil.copy("/bin/echo", os.path.join(self.temp_dir, "mp3val"))
         with captureStdout() as stdout:
             beets.ui._raw_main(["check", "--list-tools"])
-        self.assertRegexpMatches(stdout.getvalue(), r"mp3val *found")
+        self.assertRegex(stdout.getvalue(), r"mp3val *found")
 
     def test_oggz_validate_not_found(self):
         with captureStdout() as stdout:
             beets.ui._raw_main(["check", "--list-tools"])
-        self.assertRegexpMatches(stdout.getvalue(), r"oggz-validate *not found")
+        self.assertRegex(stdout.getvalue(), r"oggz-validate *not found")

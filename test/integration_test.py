@@ -6,7 +6,7 @@ import beets
 import beets.library
 import beets.plugins
 import beets.ui
-from beets.mediafile import MediaFile
+from mediafile import MediaFile
 
 from beetsplug.check import IntegrityChecker, verify_checksum
 
@@ -123,7 +123,7 @@ class WriteTest(TestHelper, TestCase):
 
         with captureLog() as logs:
             beets.ui._raw_main(["write", item.title])
-        self.assertRegexpMatches(
+        self.assertRegex(
             "\n".join(logs),
             r"error reading .*: checksum did not match value in library",
         )
