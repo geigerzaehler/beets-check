@@ -1,27 +1,32 @@
-import sys
-import os
-import tempfile
 import logging
+import os
 import shutil
+import sys
+import tempfile
 from contextlib import contextmanager
 
 try:
-        from StringIO import StringIO
+    from StringIO import StringIO
 except ImportError:
-        from io import StringIO
+    from io import StringIO
 
 import beets
-from beets import autotag
-from beets import plugins
-from beets.autotag import AlbumInfo, TrackInfo, \
-    AlbumMatch, TrackMatch, Recommendation, Proposal
+from beets import autotag, plugins
+from beets.autotag import (
+    AlbumInfo,
+    AlbumMatch,
+    Proposal,
+    Recommendation,
+    TrackInfo,
+    TrackMatch,
+)
 from beets.autotag.hooks import Distance
 from beets.library import Item
 from mediafile import MediaFile
 
 from beetsplug import check
 
-logging.getLogger('beets').propagate = True
+logging.getLogger("beets").propagate = True
 
 
 class LogCapture(logging.Handler):
@@ -35,7 +40,7 @@ class LogCapture(logging.Handler):
 
 
 @contextmanager
-def captureLog(logger='beets'):
+def captureLog(logger="beets"):
     capture = LogCapture()
     log = logging.getLogger(logger)
     log.addHandler(capture)
@@ -74,36 +79,35 @@ class TestHelper(object):
 
     def tearDown(self):
         self.unloadPlugins()
-        if hasattr(self, 'temp_dir'):
+        if hasattr(self, "temp_dir"):
             shutil.rmtree(self.temp_dir)
         MockChecker.restore()
 
     def setupBeets(self):
-        os.environ['BEETSDIR'] = self.temp_dir
+        os.environ["BEETSDIR"] = self.temp_dir
 
         self.config = beets.config
         self.config.clear()
         self.config.read()
 
-        self.config['plugins'] = []
-        self.config['verbose'] = True
-        self.config['ui']['color'] = False
-        self.config['threaded'] = False
-        self.config['import']['copy'] = False
+        self.config["plugins"] = []
+        self.config["verbose"] = True
+        self.config["ui"]["color"] = False
+        self.config["threaded"] = False
+        self.config["import"]["copy"] = False
 
-        self.libdir = os.path.join(self.temp_dir, 'libdir')
+        self.libdir = os.path.join(self.temp_dir, "libdir")
         os.mkdir(self.libdir)
-        self.config['directory'] = self.libdir
+        self.config["directory"] = self.libdir
 
         self.lib = beets.library.Library(
-            self.config['library'].as_filename(),
-            self.libdir
+            self.config["library"].as_filename(), self.libdir
         )
 
-        self.fixture_dir = os.path.join(os.path.dirname(__file__), 'fixtures')
+        self.fixture_dir = os.path.join(os.path.dirname(__file__), "fixtures")
 
     def setupImportDir(self, files):
-        self.import_dir = os.path.join(self.temp_dir, 'import')
+        self.import_dir = os.path.join(self.temp_dir, "import")
         if not os.path.isdir(self.import_dir):
             os.mkdir(self.import_dir)
         for file in files:
@@ -120,16 +124,15 @@ class TestHelper(object):
 
         The `MockChecker` will raise an integrity error when run on this item.
         """
-        item = self.addItemFixture('truncated.mp3')
+        item = self.addItemFixture("truncated.mp3")
         if checksum:
             check.set_checksum(item)
         return item
 
     def addCorruptedFixture(self):
-        """Add item with a wrong checksum to the library and return it.
-        """
-        item = self.addItemFixture('ok.ogg')
-        item['checksum'] = 'this is a wrong checksum'
+        """Add item with a wrong checksum to the library and return it."""
+        item = self.addItemFixture("ok.ogg")
+        item["checksum"] = "this is a wrong checksum"
         item.store()
         return item
 
@@ -146,12 +149,12 @@ class TestHelper(object):
         check.IntegrityChecker._all_available = []
 
     def enableIntegrityCheckers(self):
-        if hasattr(check.IntegrityChecker, '_all'):
-            delattr(check.IntegrityChecker, '_all')
-        if hasattr(check.IntegrityChecker, '_all_available'):
-            delattr(check.IntegrityChecker, '_all_available')
+        if hasattr(check.IntegrityChecker, "_all"):
+            delattr(check.IntegrityChecker, "_all")
+        if hasattr(check.IntegrityChecker, "_all_available"):
+            delattr(check.IntegrityChecker, "_all_available")
 
-    def modifyFile(self, path, title='a different title'):
+    def modifyFile(self, path, title="a different title"):
         mediafile = MediaFile(path)
         mediafile.title = title
         mediafile.save()
@@ -192,33 +195,42 @@ class AutotagMock(object):
         autotag.tag_item = self._orig_tag_item
 
     def tag_album(self, items, **kwargs):
-        artist = (items[0].artist or '') + ' tag'
-        album = (items[0].album or '') + ' tag'
+        artist = (items[0].artist or "") + " tag"
+        album = (items[0].album or "") + " tag"
         mapping = {}
         dist = Distance()
         dist.tracks = {}
         for item in items:
-            title = (item.title or '') + ' tag'
+            title = (item.title or "") + " tag"
             track_info = TrackInfo(title=title, track_id=self.nextid(), index=1)
             mapping[item] = track_info
             dist.tracks[track_info] = Distance()
 
-        album_info = AlbumInfo(album='album', album_id=self.nextid(),
-                               artist='artist', artist_id=self.nextid(),
-                               tracks=mapping.values())
-        match = AlbumMatch(distance=dist, info=album_info, mapping=mapping,
-                           extra_items=[], extra_tracks=[])
+        album_info = AlbumInfo(
+            album="album",
+            album_id=self.nextid(),
+            artist="artist",
+            artist_id=self.nextid(),
+            tracks=mapping.values(),
+        )
+        match = AlbumMatch(
+            distance=dist,
+            info=album_info,
+            mapping=mapping,
+            extra_items=[],
+            extra_tracks=[],
+        )
         return artist, album, Proposal([match], Recommendation.strong)
 
     def tag_item(self, item, **kwargs):
-        title = (item.title or '') + ' tag'
+        title = (item.title or "") + " tag"
         track_info = TrackInfo(title=title, track_id=self.nextid())
         match = TrackMatch(distance=Distance(), info=track_info)
         return Proposal([match], Recommendation.strong)
 
 
 class MockChecker(object):
-    name = 'mock'
+    name = "mock"
 
     @classmethod
     def install(cls):
@@ -226,13 +238,13 @@ class MockChecker(object):
 
     @classmethod
     def restore(cls):
-        if hasattr(check.IntegrityChecker, '_all_available'):
-            delattr(check.IntegrityChecker, '_all_available')
+        if hasattr(check.IntegrityChecker, "_all_available"):
+            delattr(check.IntegrityChecker, "_all_available")
 
     @classmethod
     def installNone(cls):
         check.IntegrityChecker._all_available = []
 
     def check(self, item):
-        if b'truncated' in item.path:
-            raise check.IntegrityError(item.path, 'file is corrupt')
+        if b"truncated" in item.path:
+            raise check.IntegrityError(item.path, "file is corrupt")

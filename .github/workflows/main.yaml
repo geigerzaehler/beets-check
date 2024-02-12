@@ -24,6 +24,8 @@ jobs:
           cache: poetry
       - run: poetry env use $(which python)
       - run: poetry install
+      - run: poetry run black --check .
+      - run: poetry run isort --check .
       - run: poetry run flake8
       - run: poetry run pytest
 
