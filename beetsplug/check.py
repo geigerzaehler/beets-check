@@ -71,7 +71,7 @@ class CheckPlugin(BeetsPlugin):
                     "mp3val": {
                         "cmdline": "mp3val {0}",
                         "formats": "MP3",
-                        "error": "^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$",
+                        "error": r"^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$",
                         "fix": "mp3val -nb -f {0}",
                     },
                     "flac": {
@@ -260,7 +260,7 @@ class CheckCommand(Subcommand):
             log.debug("adding checksum for {0}".format(displayable_path(item.path)))
             try:
                 set_checksum(item)
-            except FileNotFoundError as ex:
+            except FileNotFoundError:
                 log.warning(
                     "{} {}: {}".format(
                         colorize("text_warning", "WARNING"),
