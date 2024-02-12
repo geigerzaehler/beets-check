@@ -17,7 +17,7 @@ from beets.autotag import AlbumInfo, TrackInfo, \
     AlbumMatch, TrackMatch, Recommendation, Proposal
 from beets.autotag.hooks import Distance
 from beets.library import Item
-from beets.mediafile import MediaFile
+from mediafile import MediaFile
 
 from beetsplug import check
 

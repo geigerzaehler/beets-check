@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "beets-check"
+version = "0.13.0"
+description = "beets plugin verifying file integrity with checksums"
+authors = ["Thomas Scholtes <geigerzaehler@axiom.fm>"]
+license = "MIT"
+readme = "README.md"
+repository = "http://www.github.com/geigerzaehler/beets-check"
+classifiers = [
+  "Topic :: Multimedia :: Sound/Audio",
+  "Topic :: Multimedia :: Sound/Audio :: Players :: MP3",
+  "License :: OSI Approved :: MIT License",
+  "Environment :: Console",
+  "Environment :: Web Environment",
+  "Programming Language :: Python :: 3",
+]
+packages = [{ include = "beetsplug" }]
+
+[tool.poetry.dependencies]
+python = "^3.8, >=3.8.1"
+beets = "^1.6"
+mediafile = "^0.12.0"
+
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^7.0.0"
+pytest = "^8.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

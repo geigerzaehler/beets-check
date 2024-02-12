@@ -33,7 +33,7 @@ class CheckAddTest(TestBase, TestCase):
 
         beets.ui._raw_main(['check', '-a'])
 
-        item.load()
+        item = self.lib.items().get()
         self.assertIn('checksum', item)
 
     def test_dont_add_existing_checksums(self):
@@ -45,6 +45,7 @@ class CheckAddTest(TestBase, TestCase):
         self.modifyFile(item.path)
         beets.ui._raw_main(['check', '-a'])
 
+        item["checksum"] = ""
         item.load()
         self.assertEqual(item['checksum'], orig_checksum)
 
@@ -172,7 +173,7 @@ class CheckUpdateTest(TestBase, TestCase):
 
         beets.ui._raw_main(['check', '--force', '--update'])
 
-        item.load()
+        item = self.lib.items().get()
         self.assertNotEqual(item['checksum'], orig_checksum)
         verify_checksum(item)
 
@@ -188,7 +189,7 @@ class CheckUpdateTest(TestBase, TestCase):
         self.assertIn('Do you want to overwrite all checksums',
                       stdout.getvalue())
 
-        item.load()
+        item = self.lib.items().get()
         self.assertNotEqual(item['checksum'], orig_checksum)
         verify_checksum(item)
 
@@ -201,7 +202,7 @@ class CheckUpdateTest(TestBase, TestCase):
         with controlStdin(u'n'):
             beets.ui._raw_main(['check', '--update'])
 
-        item.load()
+        item = self.lib.items().get()
         self.assertEqual(item['checksum'], orig_checksum)
 
     def test_update_nonexistent(self):
@@ -258,9 +259,11 @@ class IntegrityCheckTest(TestHelper, TestCase):
         with self.assertRaises(SystemExit):
             with captureLog() as logs:
                 beets.ui._raw_main(['check', '--external'])
-        print('\n'.join(logs))
-        self.assertIn(u'check: WARNING while decoding data: {}'
-                      .format(item.path.decode('utf-8')), logs)
+        logs = "\n".join(logs)
+        self.assertRegex(
+            logs,
+            f"check: WARNING (while|during) decoding( data)?: {item.path.decode('utf-8')}",
+        )
 
     def test_ogg_vorbis_integrity(self):
         item = self.lib.items(u'truncated.ogg').get()
@@ -335,6 +338,7 @@ class FixIntegrityTest(TestHelper, TestCase):
         old_checksum = item['checksum']
         beets.ui._raw_main(['check', '--fix', '--force'])
 
+        item["checksum"] = ""
         item.load()
         verify_checksum(item)
         self.assertNotEqual(old_checksum, item['checksum'])
@@ -348,6 +352,7 @@ class FixIntegrityTest(TestHelper, TestCase):
             beets.ui._raw_main(['check', '--fix', '--force'])
         self.assertIn('FAILED checksum', '\n'.join(logs))
 
+        item["checksum"] = ""
         item.load()
         self.assertEqual(item['checksum'], 'this is wrong')
 

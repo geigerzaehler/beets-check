@@ -5,6 +5,7 @@ import beets
 import beets.ui
 import beets.library
 from beets.mediafile import MediaFile
+import beets.plugins
 
 from test.helper import TestHelper, captureLog, \
     controlStdin, captureStdout, MockChecker
@@ -145,6 +146,7 @@ class WriteTest(TestHelper, TestCase):
         item.store()
         beets.ui._raw_main(['write', item.title])
 
+        item["checksum"] = ""
         item.load()
         verify_checksum(item)
         mediafile = MediaFile(item.path)
@@ -159,6 +161,7 @@ class WriteTest(TestHelper, TestCase):
         item.store()
         beets.ui._raw_main(['write', item.title])
 
+        item["checksum"] = ""
         item.load()
         self.assertNotEqual(item['checksum'], orig_checksum)
         verify_checksum(item)
@@ -173,6 +176,9 @@ class ConvertTest(TestHelper, TestCase):
         super(ConvertTest, self).setUp()
         self.setupBeets()
         beets.config['plugins'] = ['convert']
+        beets.plugins._instances.clear()
+        beets.plugins.load_plugins(("convert", "check"))
+
         beets.config['convert'] = {
             'dest': os.path.join(self.temp_dir, 'convert'),
             # Truncated copy to break checksum
@@ -182,6 +188,7 @@ class ConvertTest(TestHelper, TestCase):
 
     def test_convert_command(self):
         with controlStdin('y'):
+            print("GO")
             beets.ui._raw_main(['convert', 'ok.ogg'])
 
     def test_update_after_keep_new_convert(self):
