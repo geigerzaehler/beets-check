@@ -13,7 +13,7 @@ This plugin requires at least version 1.6.0 of beets and at least Python 3.8
 
 ```
 pip install --upgrade beets>=1.6.0
-pip install git+git://github.com/geigerzaehler/beets-check.git@master
+pip install git+git://github.com/geigerzaehler/beets-check.git@main
 ```
 
 Then add `check` to the list of plugins in your beet configuration.
