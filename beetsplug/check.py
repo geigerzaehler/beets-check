@@ -24,7 +24,7 @@ from beets import config, importer, logging
 from beets.library import ReadError
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, UserError, colorize, decargs, input_yn
-from beets.util import cpu_count, displayable_path, syspath
+from beets.util import displayable_path, syspath
 
 log = logging.getLogger("beets.check")
 
@@ -52,11 +52,11 @@ def verify_integrity(item):
 
 
 class ChecksumError(ReadError):
-    pass
+    def __str__(self):
+        return f"error reading {displayable_path(self.path)}: {self.reason}"
 
 
 class CheckPlugin(BeetsPlugin):
-
     def __init__(self):
         super(CheckPlugin, self).__init__()
         self.config.add(
@@ -66,7 +66,7 @@ class CheckPlugin(BeetsPlugin):
                 "write-update": True,
                 "integrity": True,
                 "convert-update": True,
-                "threads": cpu_count(),
+                "threads": os.cpu_count(),
                 "external": {
                     "mp3val": {
                         "cmdline": "mp3val {0}",
@@ -160,7 +160,6 @@ class CheckPlugin(BeetsPlugin):
 
 
 class CheckCommand(Subcommand):
-
     def __init__(self, config):
         self.threads = config["threads"].get(int)
         self.check_integrity = config["integrity"].get(bool)
@@ -470,11 +469,11 @@ class CheckCommand(Subcommand):
 
 
 class IntegrityError(ReadError):
-    pass
+    def __str__(self):
+        return f"error reading {displayable_path(self.path)}: {self.reason}"
 
 
 class IntegrityChecker(object):
-
     @classmethod
     def all(cls):
         if hasattr(cls, "_all"):
