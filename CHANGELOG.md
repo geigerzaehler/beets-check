@@ -1,6 +1,6 @@
 # Changelog
 
-## Upcoming
+## v0.14.1 2024-07-11
 
 - Require beets >=1.6.1 and support beets v2.x
 
