@@ -32,7 +32,7 @@ logging.getLogger("beets").propagate = True
 class LogCapture(logging.Handler):
 
     def __init__(self):
-        super(LogCapture, self).__init__()
+        super().__init__()
         self.messages = []
 
     def emit(self, record):
@@ -70,11 +70,11 @@ def controlStdin(input=None):
         sys.stdin = org
 
 
-class TestHelper(object):
+class TestHelper:
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
-        plugins._classes = set([check.CheckPlugin])
+        plugins._classes = {check.CheckPlugin}
         self.disableIntegrityCheckers()
 
     def tearDown(self):
@@ -175,7 +175,7 @@ class TestHelper(object):
         plugins._instances = {}
 
 
-class AutotagMock(object):
+class AutotagMock:
 
     def __init__(self):
         self.id = 0
@@ -229,7 +229,7 @@ class AutotagMock(object):
         return Proposal([match], Recommendation.strong)
 
 
-class MockChecker(object):
+class MockChecker:
     name = "mock"
 
     @classmethod

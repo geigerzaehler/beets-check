@@ -36,7 +36,7 @@ def set_checksum(item):
 
 def compute_checksum(item):
     hash = sha256()
-    with open(syspath(item.path), "rb") as file:
+    with open(syspath(item.path), "rb") as file:  # noqa: FURB101
         hash.update(file.read())
     return hash.hexdigest()
 
@@ -58,31 +58,29 @@ class ChecksumError(ReadError):
 
 class CheckPlugin(BeetsPlugin):
     def __init__(self):
-        super(CheckPlugin, self).__init__()
-        self.config.add(
-            {
-                "import": True,
-                "write-check": True,
-                "write-update": True,
-                "integrity": True,
-                "convert-update": True,
-                "threads": os.cpu_count(),
-                "external": {
-                    "mp3val": {
-                        "cmdline": "mp3val {0}",
-                        "formats": "MP3",
-                        "error": r"^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$",
-                        "fix": "mp3val -nb -f {0}",
-                    },
-                    "flac": {
-                        "cmdline": "flac --test --silent {0}",
-                        "formats": "FLAC",
-                        "error": "^.*: ERROR,? (.*)$",
-                    },
-                    "oggz-validate": {"cmdline": "oggz-validate {0}", "formats": "OGG"},
+        super().__init__()
+        self.config.add({
+            "import": True,
+            "write-check": True,
+            "write-update": True,
+            "integrity": True,
+            "convert-update": True,
+            "threads": os.cpu_count(),
+            "external": {
+                "mp3val": {
+                    "cmdline": "mp3val {0}",
+                    "formats": "MP3",
+                    "error": r"^WARNING: .* \(offset 0x[0-9a-f]+\): (.*)$",
+                    "fix": "mp3val -nb -f {0}",
                 },
-            }
-        )
+                "flac": {
+                    "cmdline": "flac --test --silent {0}",
+                    "formats": "FLAC",
+                    "error": "^.*: ERROR,? (.*)$",
+                },
+                "oggz-validate": {"cmdline": "oggz-validate {0}", "formats": "OGG"},
+            },
+        })
 
         if self.config["import"]:
             self.register_listener("item_imported", self.item_imported)
@@ -151,7 +149,7 @@ class CheckPlugin(BeetsPlugin):
         if integrity_errors:
             log.warning("Warning: failed to verify integrity")
             for error in integrity_errors:
-                log.warning("  {}: {}".format(displayable_path(item.path), error))
+                log.warning(f"  {displayable_path(item.path)}: {error}")
             if beets.config["import"]["quiet"] or input_yn(
                 "Do you want to skip this album (Y/n)"
             ):
@@ -228,7 +226,7 @@ class CheckCommand(Subcommand):
             default=False,
             help="only show errors",
         )
-        super(CheckCommand, self).__init__(
+        super().__init__(
             parser=parser, name="check", help="compute and verify checksums"
         )
 
@@ -256,7 +254,7 @@ class CheckCommand(Subcommand):
         items = [i for i in self.lib.items(self.query) if not i.get("checksum", None)]
 
         def add(item):
-            log.debug("adding checksum for {0}".format(displayable_path(item.path)))
+            log.debug(f"adding checksum for {displayable_path(item.path)}")
             try:
                 set_checksum(item)
             except FileNotFoundError:
@@ -290,7 +288,7 @@ class CheckCommand(Subcommand):
             raise UserError(no_checkers_warning)
 
         if external:
-            progs = list(map(lambda c: c.name, IntegrityChecker.allAvailable()))
+            progs = [c.name for c in IntegrityChecker.allAvailable()]
             plural = "s" if len(progs) > 1 else ""
             self.log("Using integrity checker{} {}".format(plural, ", ".join(progs)))
 
@@ -324,7 +322,7 @@ class CheckCommand(Subcommand):
                     )
                 )
                 failures[0] += 1
-            except IOError as exc:
+            except OSError as exc:
                 log.error("{} {}".format(colorize("text_error", "ERROR"), exc))
                 failures[0] += 1
 
@@ -337,32 +335,35 @@ class CheckCommand(Subcommand):
         failures = failures[0]
         if external:
             if failures:
-                self.log("Found {} integrity error(s)".format(failures))
+                self.log(f"Found {failures} integrity error(s)")
                 sys.exit(15)
             else:
                 self.log("Integrity successfully verified")
         else:
             if failures:
-                self.log("Failed to verify checksum of {} file(s)".format(failures))
+                self.log(f"Failed to verify checksum of {failures} file(s)")
                 sys.exit(15)
             else:
                 self.log("All checksums successfully verified")
 
     def update(self):
-        if not self.query and not self.force_update:
-            if not input_yn(
+        if (
+            not self.query
+            and not self.force_update
+            and not input_yn(
                 "Do you want to overwrite all " "checksums in your database? (y/n)",
                 require=True,
-            ):
-                return
+            )
+        ):
+            return
 
         items = self.lib.items(self.query)
 
         def update(item):
-            log.debug("updating checksum: {}".format(displayable_path(item.path)))
+            log.debug(f"updating checksum: {displayable_path(item.path)}")
             try:
                 set_checksum(item)
-            except IOError as exc:
+            except OSError as exc:
                 log.error("{} {}".format(colorize("text_error", "ERROR"), exc))
 
         self.execute_with_progress(update, items, msg="Updating checksums")
@@ -370,7 +371,7 @@ class CheckCommand(Subcommand):
     def export(self):
         for item in self.lib.items(self.query):
             if item.get("checksum", None):
-                print("{} *{}".format(item.checksum, displayable_path(item.path)))
+                print(f"{item.checksum} *{displayable_path(item.path)}")  # noqa: T201
 
     def fix(self, ask=True):
         items = list(self.lib.items(self.query))
@@ -397,7 +398,7 @@ class CheckCommand(Subcommand):
                         displayable_path(item.path),
                     )
                 )
-            except IOError as exc:
+            except OSError as exc:
                 log.error("{} {}".format(colorize("text_error", "ERROR"), exc))
 
         self.execute_with_progress(check, items, msg="Verifying integrity")
@@ -431,23 +432,23 @@ class CheckCommand(Subcommand):
         checkers = [
             (checker.name, checker.available()) for checker in IntegrityChecker.all()
         ]
-        prog_length = max(map(lambda c: len(c[0]), checkers)) + 3
+        prog_length = max(len(c[0]) for c in checkers) + 3
         for name, available in checkers:
             msg = name + (prog_length - len(name)) * " "
             if available:
                 msg += colorize("text_success", "found")
             else:
                 msg += colorize("text_error", "not found")
-            print(msg)
+            print(msg)  # noqa: T201
 
     def log(self, msg):
         if not self.quiet:
-            print(msg)
+            print(msg)  # noqa: T201
 
     def log_progress(self, msg, index, total):
         if self.quiet or not sys.stdout.isatty():
             return
-        msg = "{}: {}/{} [{}%]".format(msg, index, total, index * 100 / total)
+        msg = f"{msg}: {index}/{total} [{index * 100 / total}%]"
         sys.stdout.write(msg + "\r")
         sys.stdout.flush()
         if index == total:
@@ -473,7 +474,7 @@ class IntegrityError(ReadError):
         return f"error reading {displayable_path(self.path)}: {self.reason}"
 
 
-class IntegrityChecker(object):
+class IntegrityChecker:
     @classmethod
     def all(cls):
         if hasattr(cls, "_all"):
@@ -500,7 +501,7 @@ class IntegrityChecker(object):
             self.formats = True
 
         if config["error"].exists():
-            self.error_match = re.compile(config["error"].get(str), re.M)
+            self.error_match = re.compile(config["error"].get(str), re.MULTILINE)
         else:
             self.error_match = False
 
@@ -548,9 +549,7 @@ class IntegrityChecker(object):
         if match:
             raise IntegrityError(item.path, match.group(1))
         elif process.returncode:
-            raise IntegrityError(
-                item.path, "non-zero exit code for {}".format(self.name)
-            )
+            raise IntegrityError(item.path, f"non-zero exit code for {self.name}")
 
     def can_fix(self, item):
         return self.can_check(item) and self.fixcmd
