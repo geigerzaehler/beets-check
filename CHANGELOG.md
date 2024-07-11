@@ -1,5 +1,9 @@
 # Changelog
 
+## Upcoming
+
+- Require beets >=1.6.1 and support beets v2.x
+
 ## v0.14.0 2024-02-12
 
 - Require Python ^3.8

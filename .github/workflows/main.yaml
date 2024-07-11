@@ -16,9 +16,9 @@ jobs:
 
     steps:
       - run: sudo apt-get install flac mp3val oggz-tools
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: pip install poetry
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: poetry
@@ -29,21 +29,23 @@ jobs:
       - run: poetry run flake8
       - run: poetry run pytest
 
-  build-beets-master:
+  build-beets-versions:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    strategy:
+      matrix:
+        beets:
+          - "git+https://github.com/beetbox/beets#master"
+          - "beets==1.6.1"
 
     steps:
       - run: sudo apt-get install flac mp3val oggz-tools
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: pip install poetry
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v5
         with:
           python-version: 3.8
           cache: poetry
       - run: poetry env use $(which python)
       - run: poetry install
-      # We cannot use `poetry add` because poetry does not install beets
-      # dependencies properly
-      - run: poetry run pip install "git+https://github.com/beetbox/beets#master"
+      - run: poetry add ${{ matrix.beets }}
       - run: poetry run pytest
