@@ -2,6 +2,9 @@ name: Check and test
 
 on: [push, pull_request]
 
+env:
+  FORCE_COLOR: "1"
+
 jobs:
   build:
     strategy:
@@ -17,33 +20,39 @@ jobs:
     steps:
       - run: sudo apt-get install flac mp3val oggz-tools
       - uses: actions/checkout@v4
-      - run: pip install poetry
+      - uses: astral-sh/setup-uv@v2
+        with:
+          enable-cache: true
       - uses: actions/setup-python@v5
+        id: setup-python
         with:
           python-version: ${{ matrix.python-version }}
-          cache: poetry
-      - run: poetry env use $(which python)
-      - run: poetry install
-      - run: poetry run ruff check .
-      - run: poetry run pytest
+      - run: echo "UV_PYTHON=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
+      - run: uv lock --locked
+      - run: uv sync --all-extras --dev
+      - run: uv run ruff check .
+      - run: uv run pytest
 
   build-beets-versions:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         beets:
-          - "git+https://github.com/beetbox/beets#master"
+          - "beets@git+https://github.com/beetbox/beets#master"
           - "beets==1.6.1"
+
+    runs-on: ubuntu-latest
 
     steps:
       - run: sudo apt-get install flac mp3val oggz-tools
       - uses: actions/checkout@v4
-      - run: pip install poetry
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v2
         with:
-          python-version: 3.9
-          cache: poetry
-      - run: poetry env use $(which python)
-      - run: poetry install
-      - run: poetry add ${{ matrix.beets }}
-      - run: poetry run pytest
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        id: setup-python
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: echo "UV_PYTHON=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
+      - run: uv lock -P ${{ matrix.beets }}
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest
