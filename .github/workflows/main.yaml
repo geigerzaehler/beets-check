@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - "3.8" # minimum required
+          - "3.9" # minimum required
           - "3.12" # latest
           - "3.13-dev" # next
 
@@ -41,7 +41,7 @@ jobs:
       - run: pip install poetry
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: 3.9
           cache: poetry
       - run: poetry env use $(which python)
       - run: poetry install
