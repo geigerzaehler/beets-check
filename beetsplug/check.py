@@ -535,7 +535,7 @@ class IntegrityChecker:
         if not self.can_check(item):
             return
         process = Popen(
-            self.cmdline.format(self.shellquote(syspath(item.path).decode("utf-8"))),
+            self.cmdline.format(self.shellquote(item.path.decode("utf-8"))),
             shell=True,
             stdin=PIPE,
             stdout=PIPE,
@@ -555,8 +555,9 @@ class IntegrityChecker:
         return self.can_check(item) and self.fixcmd
 
     def fix(self, item):
+        assert isinstance(self.fixcmd, str)
         check_call(
-            self.fixcmd.format(self.shellquote(syspath(item.path).decode("utf-8"))),
+            self.fixcmd.format(self.shellquote(item.path.decode("utf-8"))),
             shell=True,
             stdin=PIPE,
             stdout=PIPE,
