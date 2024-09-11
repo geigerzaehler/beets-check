@@ -2,6 +2,8 @@
 
 ## Upcoming
 
+- Don’t run custom external programs with `-v` (e.g. `ffmpeg -v`) to determine
+  whether they are available. (Fixes #43)
 - Require Python >=3.9
 
 ## v0.14.1 2024-07-11

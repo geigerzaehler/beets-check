@@ -13,6 +13,7 @@
 
 import os
 import re
+import shutil
 import sys
 from concurrent import futures
 from hashlib import sha256
@@ -510,16 +511,8 @@ class IntegrityChecker:
         else:
             self.fixcmd = False
 
-    def available(self):
-        try:
-            with open(os.devnull, "wb") as devnull:
-                check_call(
-                    [self.cmdline.split(" ")[0], "-v"], stdout=devnull, stderr=devnull
-                )
-        except OSError:
-            return False
-        else:
-            return True
+    def available(self) -> bool:
+        return shutil.which(self.cmdline.split(" ")[0]) is not None
 
     @classmethod
     def fixer(cls, item):
