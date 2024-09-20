@@ -1,6 +1,6 @@
 # Changelog
 
-## Upcoming
+## v0.15.0 2024-09-20
 
 - Don’t run custom external programs with `-v` (e.g. `ffmpeg -v`) to determine
   whether they are available. (Fixes #43)
