@@ -237,6 +237,8 @@ check:
   write-check: yes
   write-update: yes
   convert-update: yes
+  integrity: yes
+  auto-fix: no
   threads: num_of_cpus
 ```
 
@@ -252,6 +254,8 @@ other beets commands. You can disable each option by setting its value to `no`.
   `beet write` or `beet modify`.
 - `convert-update: no` Don’t updated the checksum if a file has been
   converted with the `--keep-new` flag.
+- `integrity: no` Don't preform integreity checks on import
+- `auto-fix: yes` Automatically fix files on import that fail the integrety check
 - `threads: 4` Use four threads to compute checksums.
 
 ### Third-party Tools

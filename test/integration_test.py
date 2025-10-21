@@ -109,6 +109,50 @@ class ImportTest(TestHelper, TestCase):
         mediafile = MediaFile(item.path)
         assert mediafile.title == "truncated tag"
 
+    def test_fix_corrupt_files(self):
+
+        # Enable auto-fix in config
+
+        self.config["check"]["auto-fix"] = True
+
+        MockChecker.install()
+        self.setupImportDir(["ok.mp3", "truncated.mp3"])
+
+        with self.mockAutotag(), captureLog() as logs:
+            beets.ui._raw_main(["import", self.import_dir])
+
+        assert len(self.lib.items()) == 2
+
+        assert "Attempting to fix files..." in "\n".join(logs)
+        assert "Fixed" in "\n".join(logs)
+
+        # Ensure this really is the same file that was broken originally,
+        # We do this by check to see if the title tag was changed to something good
+
+        item = self.lib.items("truncated.mp3").get()
+
+        print(self.lib.items().get())
+
+        mediafile = MediaFile(item.path)
+        assert mediafile.title == "fixed title"
+
+    def test_fix_corrupt_files_fail(self):
+
+        # Enable auto-fix in config
+
+        self.config["check"]["auto-fix"] = True
+
+        MockChecker.install()
+        self.setupImportDir(["ok.mp3", "truncated.mp3"])
+
+        with self.mockAutotag(), captureLog() as logs:
+            beets.ui._raw_main(["import", self.import_dir])
+
+        assert len(self.lib.items()) == 0
+
+        assert "Attempting to fix files..." in logs
+        assert "Failed to fix truncated.mp3: cannot fix file\n Skipping." in "\n".join(logs)
+
 
 class WriteTest(TestHelper, TestCase):
     def setUp(self):

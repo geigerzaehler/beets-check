@@ -64,6 +64,7 @@ class CheckPlugin(BeetsPlugin):
             "import": True,
             "write-check": True,
             "write-update": True,
+            "auto-fix": False,  # Will automatically fix integrity errors on import
             "integrity": True,
             "convert-update": True,
             "threads": os.cpu_count(),
@@ -75,9 +76,10 @@ class CheckPlugin(BeetsPlugin):
                     "fix": "mp3val -nb -f {0}",
                 },
                 "flac": {
-                    "cmdline": "flac --test --silent {0}",
+                    "cmdline": "flac --test --silent --warnings-as-errors {0}",  # More aggresive check by default
                     "formats": "FLAC",
                     "error": "^.*: ERROR,? (.*)$",
+                    "fix": "flac -VFf --preserve-modtime -o \"{0}\" \"${0}\""  # Recodes and fixes errors
                 },
                 "oggz-validate": {"cmdline": "oggz-validate {0}", "formats": "OGG"},
             },
@@ -139,6 +141,7 @@ class CheckPlugin(BeetsPlugin):
 
     def verify_import_integrity(self, session, task):
         integrity_errors = []
+        failed_items = []
         if not task.items:
             return
         for item in task.items:
@@ -146,14 +149,40 @@ class CheckPlugin(BeetsPlugin):
                 verify_integrity(item)
             except IntegrityError as ex:
                 integrity_errors.append(ex)
+                failed_items.append(item)
+
+        fixed: bool = False
 
         if integrity_errors:
             log.warning("Warning: failed to verify integrity")
             for error in integrity_errors:
                 log.warning(f"  {displayable_path(item.path)}: {error}")
-            if beets.config["import"]["quiet"] or input_yn(
+            if self.config["auto-fix"]:
+                log.info("Attempting to fix files...")
+                # TODO: Only gets a checker for the first item,
+                # could fail if multiple formats are present.
+                checker = IntegrityChecker.fixer(failed_items[0])
+                if checker:
+                    for item in failed_items:
+                        try:
+                            checker.fix(item)
+                            # set_checksum(item) Don't set checksum here, will be done later in import process
+                            log.info(f"Fixed {displayable_path(item.path)}")
+                        except Exception as e:
+                            log.error(f"Failed to fix {displayable_path(item.path)}: {e}")
+                            # log.info("Skipping.")
+                            # task.choice_flag = importer.action.SKIP
+                            break
+                    # if we have made it here, we have fixed all the files,
+                    # thus we can mark a successful fix
+                    fixed = True
+                else:
+                    log.error("No integrity fixer available.")
+                    # task.choice_flag = importer.action.SKIP
+
+            if beets.config["import"]["quiet"] or (not fixed and input_yn(
                 "Do you want to skip this album (Y/n)"
-            ):
+            )):
                 log.info("Skipping.")
                 task.choice_flag = importer.action.SKIP
 

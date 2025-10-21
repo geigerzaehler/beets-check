@@ -248,3 +248,22 @@ class MockChecker:
     def check(self, item):
         if b"truncated" in item.path:
             raise check.IntegrityError(item.path, "file is corrupt")
+
+    def can_fix(self, item):
+        # We always attempt to fix the file
+        return True
+
+    def fix(self, item):
+
+        # We check for the presence of title tag 'truncated' in file
+
+        mf = MediaFile(item.path)
+
+        if mf.title == "truncated tag":
+            # "Fix" the file by chaning the tag
+
+            mf.title = "fixed title"
+            mf.save()
+
+        if b"fail" in item.path:
+            raise check.IntegrityError(item.path, "cannot fix file")
