@@ -76,10 +76,12 @@ class CheckPlugin(BeetsPlugin):
                     "fix": "mp3val -nb -f {0}",
                 },
                 "flac": {
-                    "cmdline": "flac --test --silent --warnings-as-errors {0}",  # More aggresive check by default
+                    # More aggresive check by default
+                    "cmdline": "flac --test --silent --warnings-as-errors {0}",
                     "formats": "FLAC",
-                    "error": "^.*: ERROR,? (.*)$",
-                    "fix": "flac -VFf --preserve-modtime -o \"{0}\" \"${0}\""  # Recodes and fixes errors
+                    "error": "^.*: (?:WARNING|ERROR),? (.*)$",
+                    # Recodes and fixes errors
+                    "fix": "flac -VFf --preserve-modtime -o \"{0}\" \"${0}\""
                 },
                 "oggz-validate": {"cmdline": "oggz-validate {0}", "formats": "OGG"},
             },
@@ -159,7 +161,6 @@ class CheckPlugin(BeetsPlugin):
             # and the user should still be prompted to skip the album
             fixed: bool = False
 
-
             log.warning("Warning: failed to verify integrity")
             for error in integrity_errors:
                 log.warning(f"  {displayable_path(item.path)}: {error}")
@@ -181,7 +182,8 @@ class CheckPlugin(BeetsPlugin):
                             item["checksum"] = compute_checksum(item)
                             log.info(f"Fixed {displayable_path(item.path)}")
                         except Exception as e:
-                            log.error(f"Failed to fix {displayable_path(item.path)}: {e}")
+                            log.error(
+                                f"Failed to fix {displayable_path(item.path)}: {e}")
 
                             # We failed to fix, so we need to prompt the user
                             # We also stop proecessing further files
@@ -192,7 +194,7 @@ class CheckPlugin(BeetsPlugin):
 
                     # no integrity fixer available, so we need to prompt the user
                     fixed = False
-    
+
             if beets.config["import"]["quiet"] or (not fixed and input_yn(
                 "Do you want to skip this album (Y/n)"
             )):
