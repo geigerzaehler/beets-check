@@ -152,6 +152,8 @@ class ImportTest(TestHelper, TestCase):
         with self.mockAutotag(), captureLog() as logs, controlStdin("y"):
             beets.ui._raw_main(["import", self.import_dir])
 
+        # We have skipped this import, so library should be empty
+
         assert len(self.lib.items()) == 0
 
         assert "Attempting to fix files..." in "\n".join(logs)
@@ -168,6 +170,8 @@ class ImportTest(TestHelper, TestCase):
 
         with self.mockAutotag(), captureLog() as logs, controlStdin("n"):
             beets.ui._raw_main(["import", self.import_dir])
+
+        # We have imported this library anyway, so library should contain both items
 
         assert len(self.lib.items()) == 2
 
@@ -189,6 +193,9 @@ class ImportTest(TestHelper, TestCase):
 
         with self.mockAutotag(), captureLog() as logs:
             beets.ui._raw_main(["import", self.import_dir])
+
+        # Since import failed, and quite mode is enabled,
+        # we should not import anything
 
         assert len(self.lib.items()) == 0
 
