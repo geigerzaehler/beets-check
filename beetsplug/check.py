@@ -151,14 +151,26 @@ class CheckPlugin(BeetsPlugin):
                 integrity_errors.append(ex)
                 failed_items.append(item)
 
-        fixed: bool = False
-
         if integrity_errors:
+
+            # If True, then all errors have been corrected and we
+            # do not need to prompt the user at the end of this branch
+            # If this is False, then we did not fix the problem,
+            # and the user should still be prompted to skip the album
+            fixed: bool = False
+
+
             log.warning("Warning: failed to verify integrity")
             for error in integrity_errors:
                 log.warning(f"  {displayable_path(item.path)}: {error}")
             if self.config["auto-fix"]:
                 log.info("Attempting to fix files...")
+
+                # Iniitally, we assume we can fix all files,
+                # so we set fixed to True. This will change if we fail to fix
+
+                fixed = True
+
                 # TODO: Only gets a checker for the first item,
                 # could fail if multiple formats are present.
                 checker = IntegrityChecker.fixer(failed_items[0])
@@ -166,20 +178,21 @@ class CheckPlugin(BeetsPlugin):
                     for item in failed_items:
                         try:
                             checker.fix(item)
-                            # set_checksum(item) Don't set checksum here, will be done later in import process
+                            item["checksum"] = compute_checksum(item)
                             log.info(f"Fixed {displayable_path(item.path)}")
                         except Exception as e:
                             log.error(f"Failed to fix {displayable_path(item.path)}: {e}")
-                            # log.info("Skipping.")
-                            # task.choice_flag = importer.action.SKIP
+
+                            # We failed to fix, so we need to prompt the user
+                            # We also stop proecessing further files
+                            fixed = False
                             break
-                    # if we have made it here, we have fixed all the files,
-                    # thus we can mark a successful fix
-                    fixed = True
                 else:
                     log.error("No integrity fixer available.")
-                    # task.choice_flag = importer.action.SKIP
 
+                    # no integrity fixer available, so we need to prompt the user
+                    fixed = False
+    
             if beets.config["import"]["quiet"] or (not fixed and input_yn(
                 "Do you want to skip this album (Y/n)"
             )):

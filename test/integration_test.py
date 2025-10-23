@@ -126,15 +126,36 @@ class ImportTest(TestHelper, TestCase):
         assert "Attempting to fix files..." in "\n".join(logs)
         assert "Fixed" in "\n".join(logs)
 
+        item = self.lib.items("truncated").get()
+
+        # The checkum should match the file
+
+        verify_checksum(item)
+
         # Ensure this really is the same file that was broken originally,
         # We do this by check to see if the title tag was changed to something good
 
-        item = self.lib.items("truncated.mp3").get()
-
-        print(self.lib.items().get())
-
         mediafile = MediaFile(item.path)
-        assert mediafile.title == "fixed title"
+
+        # Did we actually fix the file?
+        assert mediafile.url == "fixed"
+
+    def test_fix_corrupt_files_fail_skip(self):
+
+        # Enable auto-fix in config
+
+        self.config["check"]["auto-fix"] = True
+
+        MockChecker.install()
+        self.setupImportDir(["ok.mp3", "fail.mp3"])
+
+        with self.mockAutotag(), captureLog() as logs, controlStdin("y"):
+            beets.ui._raw_main(["import", self.import_dir])
+
+        assert len(self.lib.items()) == 0
+
+        assert "Attempting to fix files..." in "\n".join(logs)
+        assert "Failed to fix" in "\n".join(logs)
 
     def test_fix_corrupt_files_fail(self):
 
@@ -143,15 +164,36 @@ class ImportTest(TestHelper, TestCase):
         self.config["check"]["auto-fix"] = True
 
         MockChecker.install()
-        self.setupImportDir(["ok.mp3", "truncated.mp3"])
+        self.setupImportDir(["ok.mp3", "fail.mp3"])
+
+        with self.mockAutotag(), captureLog() as logs, controlStdin("n"):
+            beets.ui._raw_main(["import", self.import_dir])
+
+        assert len(self.lib.items()) == 2
+
+        assert "Attempting to fix files..." in "\n".join(logs)
+        assert "Failed to fix" in "\n".join(logs)
+
+    def test_fix_corrupt_files_quiet(self):
+
+        # Enable auto-fix in config
+
+        self.config["check"]["auto-fix"] = True
+
+        # Enable quite mode, should not import files by default
+
+        self.config["import"]["quiet"] = True
+
+        MockChecker.install()
+        self.setupImportDir(["ok.mp3", "fail.mp3"])
 
         with self.mockAutotag(), captureLog() as logs:
             beets.ui._raw_main(["import", self.import_dir])
 
         assert len(self.lib.items()) == 0
 
-        assert "Attempting to fix files..." in logs
-        assert "Failed to fix truncated.mp3: cannot fix file\n Skipping." in "\n".join(logs)
+        assert "Attempting to fix files..." in "\n".join(logs)
+        assert "Failed to fix" in "\n".join(logs)
 
 
 class WriteTest(TestHelper, TestCase):
