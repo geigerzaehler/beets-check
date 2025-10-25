@@ -27,6 +27,12 @@ from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, UserError, colorize, decargs, input_yn
 from beets.util import displayable_path, syspath
 
+try:
+    from beets.importer import Action as ImporterAction
+except ImportError:
+    # beets<2.4 compatibility
+    from beets.importer import action as ImporterAction
+
 log = logging.getLogger("beets.check")
 
 
@@ -199,7 +205,7 @@ class CheckPlugin(BeetsPlugin):
                 "Do you want to skip this album (Y/n)"
             )):
                 log.info("Skipping.")
-                task.choice_flag = importer.action.SKIP
+                task.choice_flag = ImporterAction.SKIP
 
 
 class CheckCommand(Subcommand):
@@ -328,7 +334,7 @@ class CheckCommand(Subcommand):
     def check(self, external):
         if external and not IntegrityChecker.allAvailable():
             no_checkers_warning = (
-                "No integrity checkers found. " "Run 'beet check --list-tools'"
+                "No integrity checkers found. Run 'beet check --list-tools'"
             )
             raise UserError(no_checkers_warning)
 
@@ -396,7 +402,7 @@ class CheckCommand(Subcommand):
             not self.query
             and not self.force_update
             and not input_yn(
-                "Do you want to overwrite all " "checksums in your database? (y/n)",
+                "Do you want to overwrite all checksums in your database? (y/n)",
                 require=True,
             )
         ):

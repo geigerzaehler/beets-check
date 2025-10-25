@@ -1,6 +1,10 @@
 name: Check and test
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 env:
   FORCE_COLOR: "1"
@@ -10,12 +14,12 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - "3.9" # minimum required
-          - "3.12" # latest
-          - "3.13-dev" # next
+          - "3.10" # minimum required
+          - "3.13"
+          - "3.14"
 
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.python-version == '3.13-dev' }}
+    continue-on-error: ${{ matrix.python-version == '3.14' }}
 
     steps:
       - run: sudo apt-get install flac mp3val oggz-tools
@@ -27,7 +31,7 @@ jobs:
         id: setup-python
         with:
           python-version: ${{ matrix.python-version }}
-      - run: echo "UV_PYTHON=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
+      - run: echo "UV_PYTHON=${{ steps.setup-python.outputs.python-path }}" >> "$GITHUB_ENV"
       - run: uv lock --locked
       - run: uv sync --all-extras --dev
       - run: uv run ruff check .
@@ -38,9 +42,14 @@ jobs:
       matrix:
         beets:
           - "beets@git+https://github.com/beetbox/beets#master"
-          - "beets==1.6.1"
+          - "beets==2.0.*"
+          - "beets==2.1.*"
+          - "beets==2.2.*"
+          - "beets==2.3.*"
+          - "beets==2.4.*"
 
     runs-on: ubuntu-latest
+    continue-on-error: ${{ endsWith(matrix.beets, 'master') }}
 
     steps:
       - run: sudo apt-get install flac mp3val oggz-tools
@@ -51,8 +60,8 @@ jobs:
       - uses: actions/setup-python@v5
         id: setup-python
         with:
-          python-version: ${{ matrix.python-version }}
-      - run: echo "UV_PYTHON=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
+          python-version: 3.13
+      - run: echo "UV_PYTHON=${{ steps.setup-python.outputs.python-path }}" >> "$GITHUB_ENV"
       - run: uv lock -P ${{ matrix.beets }}
       - run: uv sync --all-extras --dev
       - run: uv run pytest
