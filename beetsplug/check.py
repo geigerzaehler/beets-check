@@ -87,7 +87,7 @@ class CheckPlugin(BeetsPlugin):
                     "formats": "FLAC",
                     "error": "^.*: (?:WARNING|ERROR),? (.*)$",
                     # Recodes and fixes errors
-                    "fix": "flac -VFf --preserve-modtime -o \"{0}\" \"${0}\""
+                    "fix": 'flac -VFf --preserve-modtime -o "{0}" "${0}"',
                 },
                 "oggz-validate": {"cmdline": "oggz-validate {0}", "formats": "OGG"},
             },
@@ -158,11 +158,8 @@ class CheckPlugin(BeetsPlugin):
                 failed_items.append((ex, item))
 
         if failed_items:
-
-            # If True, then all errors have been corrected and we
-            # do not need to prompt the user at the end of this branch
-            # If this is False, then we did not fix the problem,
-            # and the user should still be prompted to skip the album
+            # If True, then all errors have been corrected
+            # If this is False, then we did not fix the problem
             fixed: bool = False
 
             log.warning("Warning: failed to verify integrity")
@@ -170,10 +167,6 @@ class CheckPlugin(BeetsPlugin):
                 log.warning(f"  {displayable_path(error[1])}: {error[0]}")
             if self.config["auto-fix"]:
                 log.info("Attempting to fix files...")
-
-                # Initially, we assume we can fix all files,
-                # so we set fixed to True. This will change if we fail to fix
-
                 fixed = True
 
                 for item in failed_items:
@@ -181,7 +174,8 @@ class CheckPlugin(BeetsPlugin):
                         checker = IntegrityChecker.fixer(item[1])
                         if not checker:
                             log.error(
-                                f"No fixer available for file: {displayable_path(item[1].path)}")
+                                f"No fixer available for file: {displayable_path(item[1].path)}"
+                            )
                             fixed = False
                             continue
                         checker.fix(item[1])
@@ -189,16 +183,16 @@ class CheckPlugin(BeetsPlugin):
                         log.info(f"Fixed {displayable_path(item[1].path)}")
                     except Exception as e:
                         log.error(
-                            f"Failed to fix {displayable_path(item[1].path)}: {e}")
-
+                            f"Failed to fix {displayable_path(item[1].path)}: {e}"
+                        )
                         # We failed to fix, so we need to prompt the user
                         # We also stop precessing further files
                         fixed = False
                         break
 
-            if beets.config["import"]["quiet"] or (not fixed and input_yn(
-                "Do you want to skip this album (Y/n)"
-            )):
+            if beets.config["import"]["quiet"] or (
+                not fixed and input_yn("Do you want to skip this album (Y/n)")
+            ):
                 log.info("Skipping.")
                 task.choice_flag = ImporterAction.SKIP
 
