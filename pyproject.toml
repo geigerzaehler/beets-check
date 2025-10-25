@@ -1,6 +1,6 @@
 [project]
 name = "beets-check"
-version = "0.15.0"
+version = "0.15.1"
 description = "beets plugin verifying file integrity with checksums"
 authors = [{ name = "Thomas Scholtes", email = "geigerzaehler@axiom.fm" }]
 license = "MIT"
