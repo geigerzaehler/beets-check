@@ -176,28 +176,25 @@ class CheckPlugin(BeetsPlugin):
 
                 fixed = True
 
-                # TODO: Only gets a checker for the first item,
-                # could fail if multiple formats are present.
-                checker = IntegrityChecker.fixer(failed_items[0][1])
-                if checker:
-                    for item in failed_items:
-                        try:
-                            checker.fix(item[1])
-                            item[1]["checksum"] = compute_checksum(item[1])
-                            log.info(f"Fixed {displayable_path(item[1].path)}")
-                        except Exception as e:
+                for item in failed_items:
+                    try:
+                        checker = IntegrityChecker.fixer(item[1])
+                        if not checker:
                             log.error(
-                                f"Failed to fix {displayable_path(item[1].path)}: {e}")
-
-                            # We failed to fix, so we need to prompt the user
-                            # We also stop proecessing further files
+                                f"No fixer available for file: {displayable_path(item[1].path)}")
                             fixed = False
-                            break
-                else:
-                    log.error("No integrity fixer available.")
+                            continue
+                        checker.fix(item[1])
+                        item[1]["checksum"] = compute_checksum(item[1])
+                        log.info(f"Fixed {displayable_path(item[1].path)}")
+                    except Exception as e:
+                        log.error(
+                            f"Failed to fix {displayable_path(item[1].path)}: {e}")
 
-                    # no integrity fixer available, so we need to prompt the user
-                    fixed = False
+                        # We failed to fix, so we need to prompt the user
+                        # We also stop precessing further files
+                        fixed = False
+                        break
 
             if beets.config["import"]["quiet"] or (not fixed and input_yn(
                 "Do you want to skip this album (Y/n)"
