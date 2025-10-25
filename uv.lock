@@ -8,7 +8,7 @@ resolution-markers = [
 
 [[package]]
 name = "beets"
-version = "2.4.0"
+version = "2.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
@@ -24,9 +24,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "unidecode" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e2/df/70de9369210d849724af07f17306784b9212198d73ca606bbadba3ace4f5/beets-2.4.0.tar.gz", hash = "sha256:c5897e7b018fbeaf02a9c50b93e338a4f4e854ed8321471be690a7746be03efa", size = 2134935, upload-time = "2025-09-13T16:50:03.21Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/32/2b5ae0038c442e783b4f00b4145b15357a2f2358fd985c60a1f890751bb0/beets-2.5.1.tar.gz", hash = "sha256:7feefd70804fbcf26516089f472bac34c6a77e8e20ec539252fd1bafc91de9a2", size = 2147257, upload-time = "2025-10-14T22:52:55.631Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f5/62/c9146c0322c2772bd30bb2ec4fc3572b3815b5386591d661deb0913410d2/beets-2.4.0-py3-none-any.whl", hash = "sha256:0b50b9d15a413662c7e19378408e93909b53b83f8a71e1babba3e2bf88673c8b", size = 570247, upload-time = "2025-09-13T16:50:01.105Z" },
+    { url = "https://files.pythonhosted.org/packages/62/26/c459ae5217a69d1a2c83ddb80b61480764e990049b7d9f6a5b82660457f4/beets-2.5.1-py3-none-any.whl", hash = "sha256:3e58f33d898d007e6bfd385bd145d2c39325ef6b6f831f7269d037bbcb542bf7", size = 573677, upload-time = "2025-10-14T22:52:53.728Z" },
 ]
 
 [[package]]
