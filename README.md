@@ -261,7 +261,7 @@ other beets commands. You can disable each option by setting its value to `no`.
 - `convert-update: no` Don’t updated the checksum if a file has been
   converted with the `--keep-new` flag.
 - `integrity: no` Don't preform integrity checks on import
-- `auto-fix: yes` Automatically fix files on import that fail the integrity check
+- `auto-fix: yes` Automatically try to fix files on import with [third-party tools](#third-party-tools)
 - `threads: 4` Use four threads to compute checksums.
 
 ### Third-party Tools
