@@ -30,7 +30,6 @@ logging.getLogger("beets").propagate = True
 
 
 class LogCapture(logging.Handler):
-
     def __init__(self):
         super().__init__()
         self.messages = []
@@ -71,7 +70,6 @@ def controlStdin(input=None):
 
 
 class TestHelper:
-
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
         plugins._classes = {check.CheckPlugin}
@@ -176,7 +174,6 @@ class TestHelper:
 
 
 class AutotagMock:
-
     def __init__(self):
         self.id = 0
 
