@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add support for beets 2.4
+- Add support for beets 2.5
 - Drop support for Python 3.9 and beets<2
 
 ## v0.15.0 2024-09-20

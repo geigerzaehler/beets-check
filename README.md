@@ -9,10 +9,10 @@ _beets-check_ lets you verify the integrity of your audio files. It computes
 and validates file checksums and uses third party tools to run custom
 tests on files.
 
-This plugin requires at least version 1.6.1 of beets and at least Python 3.8
+This plugin requires at least version 2 of beets and at least Python 3.10
 
 ```
-pip install --upgrade beets>=1.6.1
+pip install --upgrade beets>=2
 pip install git+git://github.com/geigerzaehler/beets-check.git@main
 ```
 
