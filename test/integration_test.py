@@ -180,9 +180,6 @@ class ConvertTest(TestHelper, TestCase):
     def setUp(self):
         super().setUp()
         self.setupBeets()
-        beets.config["plugins"] = ["convert"]
-        beets.plugins._instances.clear()
-        beets.plugins.load_plugins(("convert", "check"))
 
         beets.config["convert"] = {
             "dest": os.path.join(self.temp_dir, "convert"),
