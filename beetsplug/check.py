@@ -27,6 +27,12 @@ from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, UserError, colorize, decargs, input_yn
 from beets.util import displayable_path, syspath
 
+try:
+    from beets.importer import Action as ImporterAction
+except ImportError:
+    # beets<2.4 compatibility
+    from beets.importer import action as ImporterAction
+
 log = logging.getLogger("beets.check")
 
 
@@ -155,7 +161,7 @@ class CheckPlugin(BeetsPlugin):
                 "Do you want to skip this album (Y/n)"
             ):
                 log.info("Skipping.")
-                task.choice_flag = importer.action.SKIP
+                task.choice_flag = ImporterAction.SKIP
 
 
 class CheckCommand(Subcommand):

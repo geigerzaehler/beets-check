@@ -3,12 +3,9 @@ import os
 import shutil
 import sys
 import tempfile
+from collections import defaultdict
 from contextlib import contextmanager
-
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
+from io import StringIO
 
 import beets
 from beets import autotag, plugins
@@ -20,13 +17,22 @@ from beets.autotag import (
     TrackInfo,
     TrackMatch,
 )
-from beets.autotag.hooks import Distance
+
+try:
+    from beets.autotag.distance import Distance
+except ImportError:
+    # beets<2.4 compatibility
+    from beets.autotag.hooks import Distance
+
+import beets.plugins
 from beets.library import Item
 from mediafile import MediaFile
 
-from beetsplug import check
+from beetsplug import check, convert
 
 logging.getLogger("beets").propagate = True
+
+_beets_version = tuple(map(int, beets.__version__.split(".")[0:3]))
 
 
 class LogCapture(logging.Handler):
@@ -72,7 +78,6 @@ def controlStdin(input=None):
 class TestHelper:
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
-        plugins._classes = {check.CheckPlugin}
         self.disableIntegrityCheckers()
 
     def tearDown(self):
@@ -101,6 +106,15 @@ class TestHelper:
         self.lib = beets.library.Library(
             self.config["library"].as_filename(), self.libdir
         )
+
+        if _beets_version > (2, 3, 1):
+            beets.plugins._instances = [
+                check.CheckPlugin(),
+                convert.ConvertPlugin(),
+            ]
+        else:
+            beets.plugins._classes = {check.CheckPlugin, convert.ConvertPlugin}
+            beets.plugins._instances = {}
 
         self.fixture_dir = os.path.join(os.path.dirname(__file__), "fixtures")
 
@@ -167,10 +181,13 @@ class TestHelper:
             mock.restore()
 
     def unloadPlugins(self):
-        for plugin in plugins._classes:
-            plugin.listeners = None
-        plugins._classes = set()
-        plugins._instances = {}
+        if _beets_version > (2, 3, 1):
+            beets.plugins.BeetsPlugin.listeners = defaultdict(list)
+        else:
+            for plugin in beets.plugins._classes:  # type: ignore (compatibility with beets<2.4)
+                # Instantiating a plugin will modify register event listeners which
+                # are stored in a class variable
+                plugin.listeners = None  # type: ignore (compatibility with beets<2.4)
 
 
 class AutotagMock:
@@ -208,7 +225,7 @@ class AutotagMock:
             album_id=self.nextid(),
             artist="artist",
             artist_id=self.nextid(),
-            tracks=mapping.values(),
+            tracks=list(mapping.values()),
         )
         match = AlbumMatch(
             distance=dist,
