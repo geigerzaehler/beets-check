@@ -82,7 +82,7 @@ class CheckPlugin(BeetsPlugin):
                     "fix": "mp3val -nb -f {0}",
                 },
                 "flac": {
-                    # More aggresive check by default
+                    # More aggressive check by default
                     "cmdline": "flac --test --silent --warnings-as-errors {0}",
                     "formats": "FLAC",
                     "error": "^.*: (?:WARNING|ERROR),? (.*)$",
@@ -148,7 +148,6 @@ class CheckPlugin(BeetsPlugin):
                 item.store()
 
     def verify_import_integrity(self, session, task):
-        integrity_errors = []
         failed_items = []
         if not task.items:
             return
@@ -156,10 +155,9 @@ class CheckPlugin(BeetsPlugin):
             try:
                 verify_integrity(item)
             except IntegrityError as ex:
-                integrity_errors.append(ex)
-                failed_items.append(item)
+                failed_items.append((ex, item))
 
-        if integrity_errors:
+        if failed_items:
 
             # If True, then all errors have been corrected and we
             # do not need to prompt the user at the end of this branch
@@ -168,28 +166,28 @@ class CheckPlugin(BeetsPlugin):
             fixed: bool = False
 
             log.warning("Warning: failed to verify integrity")
-            for error in integrity_errors:
-                log.warning(f"  {displayable_path(item.path)}: {error}")
+            for error in failed_items:
+                log.warning(f"  {displayable_path(error[1])}: {error[0]}")
             if self.config["auto-fix"]:
                 log.info("Attempting to fix files...")
 
-                # Iniitally, we assume we can fix all files,
+                # Initially, we assume we can fix all files,
                 # so we set fixed to True. This will change if we fail to fix
 
                 fixed = True
 
                 # TODO: Only gets a checker for the first item,
                 # could fail if multiple formats are present.
-                checker = IntegrityChecker.fixer(failed_items[0])
+                checker = IntegrityChecker.fixer(failed_items[0][1])
                 if checker:
                     for item in failed_items:
                         try:
-                            checker.fix(item)
-                            item["checksum"] = compute_checksum(item)
-                            log.info(f"Fixed {displayable_path(item.path)}")
+                            checker.fix(item[1])
+                            item[1]["checksum"] = compute_checksum(item[1])
+                            log.info(f"Fixed {displayable_path(item[1].path)}")
                         except Exception as e:
                             log.error(
-                                f"Failed to fix {displayable_path(item.path)}: {e}")
+                                f"Failed to fix {displayable_path(item[1].path)}: {e}")
 
                             # We failed to fix, so we need to prompt the user
                             # We also stop proecessing further files
