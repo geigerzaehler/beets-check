@@ -76,9 +76,12 @@ class ImportTest(TestHelper, TestCase):
         MockChecker.install()
         self.setupImportDir(["ok.mp3", "truncated.mp3"])
 
-        with self.mockAutotag(), controlStdin(
-            " "
-        ), captureStdout() as stdout, captureLog() as logs:
+        with (
+            self.mockAutotag(),
+            controlStdin(" "),
+            captureStdout() as stdout,
+            captureLog() as logs,
+        ):
             beets.ui._raw_main(["import", self.import_dir])
 
         assert "check: Warning: failed to verify integrity" in logs
@@ -124,7 +127,8 @@ class WriteTest(TestHelper, TestCase):
         with captureLog() as logs:
             beets.ui._raw_main(["write", item.title])
         assert re.search(
-            "error reading .*: checksum did not match value in library", "\n".join(logs)
+            r"error reading .*: checksum did not match value in library",
+            "\n".join(logs),
         )
 
     def test_abort_write_when_invalid_checksum(self):

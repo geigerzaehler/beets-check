@@ -284,7 +284,7 @@ class CheckCommand(Subcommand):
     def check(self, external):
         if external and not IntegrityChecker.allAvailable():
             no_checkers_warning = (
-                "No integrity checkers found. " "Run 'beet check --list-tools'"
+                "No integrity checkers found. Run 'beet check --list-tools'"
             )
             raise UserError(no_checkers_warning)
 
@@ -352,7 +352,7 @@ class CheckCommand(Subcommand):
             not self.query
             and not self.force_update
             and not input_yn(
-                "Do you want to overwrite all " "checksums in your database? (y/n)",
+                "Do you want to overwrite all checksums in your database? (y/n)",
                 require=True,
             )
         ):
