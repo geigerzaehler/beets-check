@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.15.1 2025-10-25
 
 - Add support for beets 2.5
 - Drop support for Python 3.9 and beets<2
