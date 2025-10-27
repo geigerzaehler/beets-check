@@ -70,7 +70,7 @@ class CheckPlugin(BeetsPlugin):
             "import": True,
             "write-check": True,
             "write-update": True,
-            "auto-fix": False,  # Will automatically fix integrity errors on import
+            "auto-fix": False,
             "integrity": True,
             "convert-update": True,
             "threads": os.cpu_count(),
