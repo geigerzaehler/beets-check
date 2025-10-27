@@ -158,10 +158,7 @@ class CheckPlugin(BeetsPlugin):
                 failed_items.append((ex, item))
 
         if failed_items:
-            # If True, then all errors have been corrected
-            # If this is False, then we did not fix the problem
             fixed: bool = False
-
             log.warning("Warning: failed to verify integrity")
             for error in failed_items:
                 log.warning(f"  {displayable_path(error[1])}: {error[0]}")
@@ -185,8 +182,6 @@ class CheckPlugin(BeetsPlugin):
                         log.error(
                             f"Failed to fix {displayable_path(item[1].path)}: {e}"
                         )
-                        # We failed to fix, so we need to prompt the user
-                        # We also stop precessing further files
                         fixed = False
                         break
 

@@ -113,9 +113,6 @@ class ImportTest(TestHelper, TestCase):
         assert mediafile.title == "truncated tag"
 
     def test_fix_corrupt_files(self):
-
-        # Enable auto-fix in config
-
         self.config["check"]["auto-fix"] = True
 
         MockChecker.install()
@@ -125,28 +122,16 @@ class ImportTest(TestHelper, TestCase):
             beets.ui._raw_main(["import", self.import_dir])
 
         assert len(self.lib.items()) == 2
-
         assert "Attempting to fix files..." in "\n".join(logs)
         assert "Fixed" in "\n".join(logs)
 
         item = self.lib.items("truncated").get()
-
-        # The checkum should match the file
-
         verify_checksum(item)
 
-        # Ensure this really is the same file that was broken originally,
-        # We do this by check to see if the title tag was changed to something good
-
         mediafile = MediaFile(item.path)
-
-        # Did we actually fix the file?
         assert mediafile.url == "fixed"
 
     def test_fix_corrupt_files_fail_skip(self):
-
-        # Enable auto-fix in config
-
         self.config["check"]["auto-fix"] = True
 
         MockChecker.install()
@@ -155,17 +140,11 @@ class ImportTest(TestHelper, TestCase):
         with self.mockAutotag(), captureLog() as logs, controlStdin("y"):
             beets.ui._raw_main(["import", self.import_dir])
 
-        # We have skipped this import, so library should be empty
-
         assert len(self.lib.items()) == 0
-
         assert "Attempting to fix files..." in "\n".join(logs)
         assert "Failed to fix" in "\n".join(logs)
 
     def test_fix_corrupt_files_fail(self):
-
-        # Enable auto-fix in config
-
         self.config["check"]["auto-fix"] = True
 
         MockChecker.install()
@@ -174,21 +153,12 @@ class ImportTest(TestHelper, TestCase):
         with self.mockAutotag(), captureLog() as logs, controlStdin("n"):
             beets.ui._raw_main(["import", self.import_dir])
 
-        # We have imported this library anyway, so library should contain both items
-
         assert len(self.lib.items()) == 2
-
         assert "Attempting to fix files..." in "\n".join(logs)
         assert "Failed to fix" in "\n".join(logs)
 
     def test_fix_corrupt_files_quiet(self):
-
-        # Enable auto-fix in config
-
         self.config["check"]["auto-fix"] = True
-
-        # Enable quite mode, should not import files by default
-
         self.config["import"]["quiet"] = True
 
         MockChecker.install()
@@ -197,11 +167,7 @@ class ImportTest(TestHelper, TestCase):
         with self.mockAutotag(), captureLog() as logs:
             beets.ui._raw_main(["import", self.import_dir])
 
-        # Since import failed, and quite mode is enabled,
-        # we should not import anything
-
         assert len(self.lib.items()) == 0
-
         assert "Attempting to fix files..." in "\n".join(logs)
         assert "Failed to fix" in "\n".join(logs)
 
