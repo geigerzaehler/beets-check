@@ -163,18 +163,14 @@ class CheckPlugin(BeetsPlugin):
             for error in failed_items:
                 log.warning(f"  {displayable_path(error[1])}: {error[0]}")
             if self.config["auto-fix"]:
-                log.info("Attempting to fix files...")
                 fixed = True
 
                 for item in failed_items:
                     try:
                         checker = IntegrityChecker.fixer(item[1])
                         if not checker:
-                            log.error(
-                                f"No fixer available for file: {displayable_path(item[1].path)}"
-                            )
-                            fixed = False
                             continue
+                        log.info(f"Fixing file: {displayable_path(item[1].path)}")
                         checker.fix(item[1])
                         item[1]["checksum"] = compute_checksum(item[1])
                         log.info(f"Fixed {displayable_path(item[1].path)}")

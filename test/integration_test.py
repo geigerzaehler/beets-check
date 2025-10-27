@@ -122,7 +122,7 @@ class ImportTest(TestHelper, TestCase):
             beets.ui._raw_main(["import", self.import_dir])
 
         assert len(self.lib.items()) == 2
-        assert "Attempting to fix files..." in "\n".join(logs)
+        assert "Fixing file:" in "\n".join(logs)
         assert "Fixed" in "\n".join(logs)
 
         item = self.lib.items("truncated").get()
@@ -141,7 +141,7 @@ class ImportTest(TestHelper, TestCase):
             beets.ui._raw_main(["import", self.import_dir])
 
         assert len(self.lib.items()) == 0
-        assert "Attempting to fix files..." in "\n".join(logs)
+        assert "Fixing file:" in "\n".join(logs)
         assert "Failed to fix" in "\n".join(logs)
 
     def test_fix_corrupt_files_fail(self):
@@ -154,7 +154,7 @@ class ImportTest(TestHelper, TestCase):
             beets.ui._raw_main(["import", self.import_dir])
 
         assert len(self.lib.items()) == 2
-        assert "Attempting to fix files..." in "\n".join(logs)
+        assert "Fixing file:" in "\n".join(logs)
         assert "Failed to fix" in "\n".join(logs)
 
     def test_fix_corrupt_files_quiet(self):
@@ -168,7 +168,7 @@ class ImportTest(TestHelper, TestCase):
             beets.ui._raw_main(["import", self.import_dir])
 
         assert len(self.lib.items()) == 0
-        assert "Attempting to fix files..." in "\n".join(logs)
+        assert "Fixing file:" in "\n".join(logs)
         assert "Failed to fix" in "\n".join(logs)
 
 
