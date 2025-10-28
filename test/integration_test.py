@@ -123,7 +123,6 @@ class ImportTest(TestHelper, TestCase):
 
         assert len(self.lib.items()) == 2
         assert "Fixing file:" in "\n".join(logs)
-        assert "Fixed" in "\n".join(logs)
 
         item = self.lib.items("truncated").get()
         verify_checksum(item)

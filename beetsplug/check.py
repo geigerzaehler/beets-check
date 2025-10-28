@@ -15,14 +15,15 @@ import os
 import re
 import shutil
 import sys
+from collections.abc import MutableSequence
 from concurrent import futures
 from hashlib import sha256
 from optparse import OptionParser
 from subprocess import PIPE, STDOUT, Popen, check_call
 
 import beets
-from beets import config, importer, logging
-from beets.library import ReadError
+from beets import config, logging
+from beets.library import Item, ReadError
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, UserError, colorize, decargs, input_yn
 from beets.util import displayable_path, syspath
@@ -148,7 +149,7 @@ class CheckPlugin(BeetsPlugin):
                 item.store()
 
     def verify_import_integrity(self, session, task):
-        failed_items = []
+        failed_items: MutableSequence[tuple[IntegrityError, Item]] = []
         if not task.items:
             return
         for item in task.items:
@@ -157,35 +158,37 @@ class CheckPlugin(BeetsPlugin):
             except IntegrityError as ex:
                 failed_items.append((ex, item))
 
-        if failed_items:
-            fixed: bool = False
-            log.warning("Warning: failed to verify integrity")
-            for error in failed_items:
-                log.warning(f"  {displayable_path(error[1])}: {error[0]}")
-            if self.config["auto-fix"]:
-                fixed = True
+        if not failed_items:
+            return
 
-                for item in failed_items:
-                    try:
-                        checker = IntegrityChecker.fixer(item[1])
-                        if not checker:
-                            continue
-                        log.info(f"Fixing file: {displayable_path(item[1].path)}")
-                        checker.fix(item[1])
-                        item[1]["checksum"] = compute_checksum(item[1])
-                        log.info(f"Fixed {displayable_path(item[1].path)}")
-                    except Exception as e:
-                        log.error(
-                            f"Failed to fix {displayable_path(item[1].path)}: {e}"
-                        )
-                        fixed = False
-                        break
+        has_unfixable_errors: bool = False
+        log.warning("Warning: failed to verify integrity")
+        for error, item in failed_items:
+            log.warning(f"  {displayable_path(item.path)}: {error}")
+            if not self.config["auto-fix"]:
+                has_unfixable_errors = True
+                continue
 
-            if beets.config["import"]["quiet"] or (
-                not fixed and input_yn("Do you want to skip this album (Y/n)")
-            ):
-                log.info("Skipping.")
-                task.choice_flag = ImporterAction.SKIP
+            checker = IntegrityChecker.fixer(item)
+            if not checker:
+                has_unfixable_errors = True
+                continue
+            log.info(f"Fixing file: {displayable_path(item.path)}")
+            try:
+                checker.fix(item)
+            except Exception as e:
+                log.error(f"Failed to fix {displayable_path(item.path)}: {e}")
+                has_unfixable_errors = True
+            item["checksum"] = compute_checksum(item)
+
+        if not has_unfixable_errors:
+            return
+
+        if beets.config["import"]["quiet"] or input_yn(
+            "Do you want to skip this album (Y/n)"
+        ):
+            log.info("Skipping.")
+            task.choice_flag = ImporterAction.SKIP
 
 
 class CheckCommand(Subcommand):
