@@ -112,6 +112,64 @@ class ImportTest(TestHelper, TestCase):
         mediafile = MediaFile(item.path)
         assert mediafile.title == "truncated tag"
 
+    def test_fix_corrupt_files(self):
+        self.config["check"]["auto-fix"] = True
+
+        MockChecker.install()
+        self.setupImportDir(["ok.mp3", "truncated.mp3"])
+
+        with self.mockAutotag(), captureLog() as logs:
+            beets.ui._raw_main(["import", self.import_dir])
+
+        assert len(self.lib.items()) == 2
+        assert "Fixing file:" in "\n".join(logs)
+
+        item = self.lib.items("truncated").get()
+        verify_checksum(item)
+
+        mediafile = MediaFile(item.path)
+        assert mediafile.url == "fixed"
+
+    def test_fix_corrupt_files_fail_skip(self):
+        self.config["check"]["auto-fix"] = True
+
+        MockChecker.install()
+        self.setupImportDir(["ok.mp3", "fail.mp3"])
+
+        with self.mockAutotag(), captureLog() as logs, controlStdin("y"):
+            beets.ui._raw_main(["import", self.import_dir])
+
+        assert len(self.lib.items()) == 0
+        assert "Fixing file:" in "\n".join(logs)
+        assert "Failed to fix" in "\n".join(logs)
+
+    def test_fix_corrupt_files_fail(self):
+        self.config["check"]["auto-fix"] = True
+
+        MockChecker.install()
+        self.setupImportDir(["ok.mp3", "fail.mp3"])
+
+        with self.mockAutotag(), captureLog() as logs, controlStdin("n"):
+            beets.ui._raw_main(["import", self.import_dir])
+
+        assert len(self.lib.items()) == 2
+        assert "Fixing file:" in "\n".join(logs)
+        assert "Failed to fix" in "\n".join(logs)
+
+    def test_fix_corrupt_files_quiet(self):
+        self.config["check"]["auto-fix"] = True
+        self.config["import"]["quiet"] = True
+
+        MockChecker.install()
+        self.setupImportDir(["ok.mp3", "fail.mp3"])
+
+        with self.mockAutotag(), captureLog() as logs:
+            beets.ui._raw_main(["import", self.import_dir])
+
+        assert len(self.lib.items()) == 0
+        assert "Fixing file:" in "\n".join(logs)
+        assert "Failed to fix" in "\n".join(logs)
+
 
 class WriteTest(TestHelper, TestCase):
     def setUp(self):

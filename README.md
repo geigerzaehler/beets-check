@@ -107,9 +107,15 @@ Warning: failed to verify integrity
 Do you want to skip this album? (Y/n)
 ```
 
+Alteratively, if auto fixing is enabled,
+then _beets-check_ will fix the file using the configured tool.
+If the fix is successful, then the import will continue as normal.
+Otherwise, it will prompt you in a similar way above,
+where you can choose to continue or skip the offending items.
+
 After a track has been added to the database and all modifications to the tags
 have been written, beets-check adds the checksums. This is virtually the same as
-running `beets check -a ` after the import.
+running `beets check -a` after the import.
 
 If you run `import` with the `--quiet` flag the importer will skip
 files that do not pass third-party tests automatically and log an
@@ -237,6 +243,8 @@ check:
   write-check: yes
   write-update: yes
   convert-update: yes
+  integrity: yes
+  auto-fix: no
   threads: num_of_cpus
 ```
 
@@ -252,6 +260,8 @@ other beets commands. You can disable each option by setting its value to `no`.
   `beet write` or `beet modify`.
 - `convert-update: no` Don’t updated the checksum if a file has been
   converted with the `--keep-new` flag.
+- `integrity: no` Don't preform integrity checks on import
+- `auto-fix: yes` Automatically try to fix files on import with [third-party tools](#third-party-tools)
 - `threads: 4` Use four threads to compute checksums.
 
 ### Third-party Tools

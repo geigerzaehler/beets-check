@@ -260,5 +260,18 @@ class MockChecker:
         check.IntegrityChecker._all_available = []
 
     def check(self, item):
-        if b"truncated" in item.path:
+        if b"truncated" in item.path or b'fail' in item.path:
             raise check.IntegrityError(item.path, "file is corrupt")
+
+    def can_fix(self, item):
+        return True
+
+    def fix(self, item):
+        mf = MediaFile(item.path)
+
+        if b'truncated' in item.path:
+            mf.url = "fixed"
+            mf.save()
+
+        if b"fail" in item.path:
+            raise check.IntegrityError(item.path, "cannot fix file")

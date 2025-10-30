@@ -15,14 +15,15 @@ import os
 import re
 import shutil
 import sys
+from collections.abc import MutableSequence
 from concurrent import futures
 from hashlib import sha256
 from optparse import OptionParser
 from subprocess import PIPE, STDOUT, Popen, check_call
 
 import beets
-from beets import config, importer, logging
-from beets.library import ReadError
+from beets import config, logging
+from beets.library import Item, ReadError
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, UserError, colorize, decargs, input_yn
 from beets.util import displayable_path, syspath
@@ -70,6 +71,7 @@ class CheckPlugin(BeetsPlugin):
             "import": True,
             "write-check": True,
             "write-update": True,
+            "auto-fix": False,
             "integrity": True,
             "convert-update": True,
             "threads": os.cpu_count(),
@@ -81,9 +83,12 @@ class CheckPlugin(BeetsPlugin):
                     "fix": "mp3val -nb -f {0}",
                 },
                 "flac": {
-                    "cmdline": "flac --test --silent {0}",
+                    # More aggressive check by default
+                    "cmdline": "flac --test --silent --warnings-as-errors {0}",
                     "formats": "FLAC",
-                    "error": "^.*: ERROR,? (.*)$",
+                    "error": "^.*: (?:WARNING|ERROR),? (.*)$",
+                    # Recodes and fixes errors
+                    "fix": 'flac -VFf --preserve-modtime -o "{0}" "${0}"',
                 },
                 "oggz-validate": {"cmdline": "oggz-validate {0}", "formats": "OGG"},
             },
@@ -144,24 +149,46 @@ class CheckPlugin(BeetsPlugin):
                 item.store()
 
     def verify_import_integrity(self, session, task):
-        integrity_errors = []
+        failed_items: MutableSequence[tuple[IntegrityError, Item]] = []
         if not task.items:
             return
         for item in task.items:
             try:
                 verify_integrity(item)
             except IntegrityError as ex:
-                integrity_errors.append(ex)
+                failed_items.append((ex, item))
 
-        if integrity_errors:
-            log.warning("Warning: failed to verify integrity")
-            for error in integrity_errors:
-                log.warning(f"  {displayable_path(item.path)}: {error}")
-            if beets.config["import"]["quiet"] or input_yn(
-                "Do you want to skip this album (Y/n)"
-            ):
-                log.info("Skipping.")
-                task.choice_flag = ImporterAction.SKIP
+        if not failed_items:
+            return
+
+        has_unfixable_errors: bool = False
+        log.warning("Warning: failed to verify integrity")
+        for error, item in failed_items:
+            log.warning(f"  {displayable_path(item.path)}: {error}")
+            if not self.config["auto-fix"]:
+                has_unfixable_errors = True
+                continue
+
+            checker = IntegrityChecker.fixer(item)
+            if not checker:
+                has_unfixable_errors = True
+                continue
+            log.info(f"Fixing file: {displayable_path(item.path)}")
+            try:
+                checker.fix(item)
+            except Exception as e:
+                log.error(f"Failed to fix {displayable_path(item.path)}: {e}")
+                has_unfixable_errors = True
+            item["checksum"] = compute_checksum(item)
+
+        if not has_unfixable_errors:
+            return
+
+        if beets.config["import"]["quiet"] or input_yn(
+            "Do you want to skip this album (Y/n)"
+        ):
+            log.info("Skipping.")
+            task.choice_flag = ImporterAction.SKIP
 
 
 class CheckCommand(Subcommand):
