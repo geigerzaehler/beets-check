@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.15.2 2025-10-30
+
+- Files are automatically fixed during import if `auto-fix: true`.
+
 ## v0.15.1 2025-10-25
 
 - Add support for beets 2.5
