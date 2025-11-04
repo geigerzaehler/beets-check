@@ -31,7 +31,7 @@ wheels = [
 
 [[package]]
 name = "beets-check"
-version = "0.15.2"
+version = "0.15.3"
 source = { editable = "." }
 dependencies = [
     { name = "beets" },

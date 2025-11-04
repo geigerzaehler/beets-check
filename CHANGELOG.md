@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.15.3 2025-11-04
+
+- Flac files can now be fixed properly with `beet check --fix`
+
 ## v0.15.2 2025-10-30
 
 - Files are automatically fixed during import if `auto-fix: true`.
