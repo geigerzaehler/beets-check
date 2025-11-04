@@ -311,6 +311,22 @@ class FixIntegrityTest(TestHelper, TestCase):
             beets.ui._raw_main(["check", "-e"])
         assert "WARNING It seems that file is truncated" not in "\n".join(logs)
 
+    def test_fix_flac_integrity(self):
+        item = self.addItemFixture("truncated.flac")
+
+        with pytest.raises(SystemExit), captureLog() as logs:
+            beets.ui._raw_main(["check", "-e"])
+        assert "WARNING" in "\n".join(logs)
+
+        with controlStdin("y"), captureLog() as logs:
+            beets.ui._raw_main(["check", "--fix"])
+        assert item.path.decode("utf-8") in "\n".join(logs)
+        assert "FIXED: {}".format(item.path.decode("utf-8")) in "\n".join(logs)
+
+        with captureLog() as logs:
+            beets.ui._raw_main(["check", "-e"])
+        assert "WARNING" not in "\n".join(logs)
+
     def test_fix_without_confirmation(self):
         item = self.addIntegrityFailFixture()
 
