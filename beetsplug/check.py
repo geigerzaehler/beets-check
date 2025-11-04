@@ -88,7 +88,7 @@ class CheckPlugin(BeetsPlugin):
                     "formats": "FLAC",
                     "error": "^.*: (?:WARNING|ERROR),? (.*)$",
                     # Recodes and fixes errors
-                    "fix": 'flac -VFf --preserve-modtime -o "{0}" "${0}"',
+                    "fix": "flac -VFf --preserve-modtime -o {0} {0}",
                 },
                 "oggz-validate": {"cmdline": "oggz-validate {0}", "formats": "OGG"},
             },
